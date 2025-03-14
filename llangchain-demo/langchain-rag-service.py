@@ -8,13 +8,15 @@ from langchain.chains import RetrievalQA
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_ollama import OllamaEmbeddings
 from langchain_community.llms.moonshot import Moonshot
-from langchain_community.llms.baichuan import BaichuanLLM
+# from langchain_community.llms.baichuan import BaichuanLLM
 from langchain_community.chat_models import ChatZhipuAI, ChatBaichuan
 from langchain_deepseek import ChatDeepSeek
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import BaichuanTextEmbeddings, ZhipuAIEmbeddings
 from langchain_community.chat_message_histories import ChatMessageHistory
-from langchain_community.document_loaders import TextLoader, PyMuPDFLoader
+from langchain_community.document_loaders import TextLoader, PyMuPDFLoader, UnstructuredWordDocumentLoader
+from langchain_community.document_loaders.csv_loader import CSVLoader
+from langchain_community.document_loaders.word_document import Docx2txtLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter, Language
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from starlette.middleware.cors import CORSMiddleware
@@ -90,12 +92,29 @@ for file in files.split(','):
         # 加载PDF
         print(f'Load PDF document {file} ...')
         loader = PyMuPDFLoader(file)
-        pages.extend(loader.load_and_split())
+        documents = loader.load()
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=20)
+        doc_pages = text_splitter.split_documents(documents)
+        pages.extend(doc_pages)
         assert len(pages)>0, f'No content is loaded yet. Please check document {file}'
     elif ext == '.docx':
         # Load Word document
-        pages.extend([])
         print(f'Load Word document...')
+        loader = Docx2txtLoader(file_path=file)
+        documents = loader.load()
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=20)
+        doc_pages = text_splitter.split_documents(documents)
+        pages.extend(doc_pages)
+        assert len(pages)>0, f'No content is loaded yet. Please check document {file}'
+    elif ext == '.csv':
+        # Load CSV document
+        print(f'Load CSV document...')
+        loader = CSVLoader(file_path=file, encoding='utf-8')
+        documents = loader.load()
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=20)
+        doc_pages = text_splitter.split_documents(documents)
+        pages.extend(doc_pages)
+        assert len(pages)>0, f'No content is loaded yet. Please check document {file}'
     else:
         raise RuntimeWarning(f'File type {ext} is not supported yet.')
 
