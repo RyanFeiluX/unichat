@@ -20,6 +20,7 @@ cryptography==44.0.1
 dataclasses-json==0.6.5
 distro==1.9.0
 dnspython==2.4.2
+docx2txt==0.8
 email_validator==2.2.0
 etelemetry==0.3.1
 exceptiongroup==1.2.0

@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, re
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -6,19 +6,23 @@ from dotenv import load_dotenv, find_dotenv
 # from langchain_community.embeddings import OpenAIEmbeddings
 from langchain.chains import RetrievalQA
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_ollama import OllamaEmbeddings
+from langchain_ollama import OllamaEmbeddings, ChatOllama
 from langchain_community.llms.moonshot import Moonshot
 # from langchain_community.llms.baichuan import BaichuanLLM
 from langchain_community.chat_models import ChatZhipuAI, ChatBaichuan
 from langchain_deepseek import ChatDeepSeek
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import BaichuanTextEmbeddings, ZhipuAIEmbeddings
+from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
-from langchain_community.document_loaders import TextLoader, PyMuPDFLoader, UnstructuredWordDocumentLoader
+from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_community.document_loaders import TextLoader, PyMuPDFLoader
 from langchain_community.document_loaders.csv_loader import CSVLoader
 from langchain_community.document_loaders.word_document import Docx2txtLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter, Language
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.chains import create_history_aware_retriever, create_retrieval_chain
+from langchain.chains.combine_documents import create_stuff_documents_chain
 from starlette.middleware.cors import CORSMiddleware
 
 
@@ -39,45 +43,25 @@ else:
     llm_model = os.getenv(f'{llm_provider}_LLM_MODEL')
     print(f'LLM model : {llm_model}')
 if llm_provider == 'OPENAI':
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.01)
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
 elif llm_provider == 'MOONSHOT':
     llm = Moonshot(model=llm_model)
 elif llm_provider == 'BAICHUAN':
-    llm = ChatBaichuan(model=llm_model, temperature=0.01)
+    llm = ChatBaichuan(model=llm_model, temperature=0.3)
 elif llm_provider == 'ZHIPUAI':
-    llm = ChatZhipuAI(model=llm_model, temperature=0)
+    llm = ChatZhipuAI(model=llm_model, temperature=0.3)
 elif llm_provider == 'DEEPSEEK':
-    llm = ChatDeepSeek(model=llm_model, temperature=0.01)
+    llm = ChatDeepSeek(model=llm_model, temperature=0.3)
+elif llm_provider == 'OLLAMA':
+    llm = ChatOllama(model=llm_model, temperature=0.3)
 else:
     raise RuntimeWarning(f'LLM provider {llm_provider} is not supported yet.')
-
-
-# Maintain history
-store = {}  # 所有用户的聊天记录都保存到store。key:session_id,value:历史聊天记录
-memory_key = "chat_history"
-# # 2、定义提示词模版、引入MessagesPlaceholder来处理多轮对话
-# prompt = ChatPromptTemplate.from_messages([
-#     ("system", "你是一个乐于助人的助手。用{language}尽你所能回答所有问题。"),
-#     MessagesPlaceholder(variable_name=memory_key),
-#     ("human", "{input}"),
-# ])
-
-# # 4、使用 LangChain 的链式操作来构建问答链。
-# chain = prompt | model
-
-def get_session_history(session_id):  # 一轮对话的内容只存储在一个key/session_id
-    if session_id not in store:
-        store[session_id] = ChatMessageHistory()
-    return store[session_id]
-
 
 # 加载文档,可换成PDF、txt、doc等其他格式文档
 files: str = os.getenv("DOCUMENTS")
 pages = []
 for file in files.split(','):
     file = file.strip()
-    # file: str = '../docs/解答手册.md'
-    # file: str = "../docs/eBook-How-to-Build-a-Career-in-AI.pdf"
     _, ext = os.path.splitext(file)
     if ext == '.md':
         # 加载MD
@@ -119,8 +103,8 @@ for file in files.split(','):
         raise RuntimeWarning(f'File type {ext} is not supported yet.')
 
 text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=200,
-    chunk_overlap=10,
+    chunk_size=300,
+    chunk_overlap=20,
     length_function=len,
     add_start_index=True,
 )
@@ -153,36 +137,66 @@ elif emb_provider.startswith('OLLAMA'):  # This branch is handled specially.
 else:
     raise RuntimeWarning(f'Embedding provider {emb_provider} is not supported. Please check your setting.')
 
+# Maintain history
+store = {}  # 所有用户的聊天记录都保存到store。key:session_id,value:历史聊天记录
+memory_key = "history"
+
+context_system_prompt = (
+        "Given a chat history and the latest user question which might reference context in the chat history, "
+        "formulate a standalone question which can be understood without the chat history. "
+        "Do NOT answer the question, just reformulate it if needed and otherwise return it as is."
+    )
+
+context_question_prompt_template = ChatPromptTemplate.from_messages(
+        [
+            ("system", context_system_prompt),
+            MessagesPlaceholder(memory_key),
+            ("human", "{input}"),
+        ]
+    )
+
+
+def get_session_history(session_id) -> BaseChatMessageHistory:  # 一轮对话的内容只存储在一个key/session_id
+    if session_id not in store:
+        print(f'Create session \"{session_id}\"')
+        store[session_id] = ChatMessageHistory()
+    return store[session_id]
+
+
 # 选择向量模型，并灌库
 db = FAISS.from_documents(texts, embeddings)
 # 获取检索器，选择 top-2 相关的检索结果
-retriever = db.as_retriever(search_kwargs={"k": 1})
+retriever = db.as_retriever(search_type="mmr", search_kwargs={"k": 2})
+
+history_aware_retriever = create_history_aware_retriever(
+        llm, retriever, context_question_prompt_template
+    )
 
 # 创建带有 system 消息的模板
-prompt_template = ChatPromptTemplate.from_messages([
-    ("system", f"""你是一个对接问题排查机器人，采用来自{llm_provider}的大模型。
+system_prompt = (f"""你是一个节拍能量技术专家，基于大模型{llm_model}。
                你的任务是根据下述给定的已知信息回答用户问题。
                确保你的回复完全依据下述已知信息，不要编造答案。
                请用中文回答用户问题。
 
                已知信息:"""+
-               """"{context} """),
-    # MessagesPlaceholder(variable_name=memory_key),
-    ("user", "{question}")
+               """"{context} """)
+# 定义提示词模版、引入MessagesPlaceholder来处理多轮对话
+qa_prompt_template = ChatPromptTemplate.from_messages([
+    ("system", system_prompt),
+    MessagesPlaceholder(variable_name=memory_key),
+    ("user", "{input}")
 ])
 
-# 自定义的提示词参数
-chain_type_kwargs = {
-    "prompt": prompt_template,
-}
+qa_chain = create_stuff_documents_chain(llm, qa_prompt_template)
+rag_qa_chain = create_retrieval_chain(history_aware_retriever, qa_chain)
+msghist_chain = RunnableWithMessageHistory(
+        rag_qa_chain,
+        get_session_history,
+        input_messages_key="input",
+        history_messages_key=memory_key,
+        output_messages_key="answer",
+    )
 
-# 定义RetrievalQA链
-qa_chain = RetrievalQA.from_chain_type(
-    llm=llm,
-    chain_type="stuff",  # 使用stuff模式将上下文拼接到提示词中
-    chain_type_kwargs=chain_type_kwargs,
-    retriever=retriever
-)
 
 # 构建 FastAPI 应用，提供服务
 app = FastAPI()
@@ -216,15 +230,34 @@ async def ask_question(request: QuestionRequest):
     try:
         # 获取用户问题
         user_question = request.question
-        print(f'question:{user_question}')
+        session_id = "unique-identifier"
+        print(f'session[{session_id}] question:\"{user_question}\"')
 
         # 通过RAG链生成回答
         # answer = qa_chain.run(user_question)
-        answer = qa_chain.invoke(user_question)
+        answer = msghist_chain.invoke({"input":user_question}, config={"configurable": {"session_id": session_id}})
+
+        ai_answer = answer['answer']
+        ai_thinks = []
+        thinks = re.findall(r'<think>([\s\S]*)</think>', ai_answer)
+        if len(thinks)>0:
+            [ai_thinks.append(t.strip()) for t in thinks]
+            reasoning = '<<<<<< 推理开始 >>>>>>\n\n' + '\n------\n'.join(ai_thinks) + '\n\n<<<<<< 推理完成 >>>>>>\n\n'
+        else:
+            reasoning = ''
+        if len(thinks) > 0:
+            summary = re.match(r'[\s\S]*</think>([\s\S]*)', ai_answer)
+            if summary:
+                summing = summary.group(1).strip()
+            else:
+                summing = ''
+        else:
+            summing = ai_answer.strip()
+        final_answer = reasoning + summing
 
         # 返回答案
-        answer = AnswerResponse(answer=answer['result'])
-        print(f'answer:{answer.answer}')
+        answer = AnswerResponse(answer=final_answer)
+        print(f'answer:{summing}')
         return answer
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
