@@ -57,8 +57,9 @@ elif llm_provider == 'OLLAMA':
 else:
     raise RuntimeWarning(f'LLM provider {llm_provider} is not supported yet.')
 
-# 加载文档,可换成PDF、txt、doc等其他格式文档
+# 加载文档,可换成PDF、txt、docx、csv等其他格式文档
 files: str = os.getenv("DOCUMENTS")
+role: str = os.getenv("ROLE")
 pages = []
 for file in files.split(','):
     file = file.strip()
@@ -158,7 +159,7 @@ context_question_prompt_template = ChatPromptTemplate.from_messages(
 
 def get_session_history(session_id) -> BaseChatMessageHistory:  # 一轮对话的内容只存储在一个key/session_id
     if session_id not in store:
-        print(f'Create session \"{session_id}\"')
+        # print(f'Create session \"{session_id}\"')
         store[session_id] = ChatMessageHistory()
     return store[session_id]
 
@@ -166,14 +167,14 @@ def get_session_history(session_id) -> BaseChatMessageHistory:  # 一轮对话�
 # 选择向量模型，并灌库
 db = FAISS.from_documents(texts, embeddings)
 # 获取检索器，选择 top-2 相关的检索结果
-retriever = db.as_retriever(search_type="mmr", search_kwargs={"k": 2})
+retriever = db.as_retriever(search_type="mmr", search_kwargs={"k": 6})
 
 history_aware_retriever = create_history_aware_retriever(
         llm, retriever, context_question_prompt_template
     )
 
 # 创建带有 system 消息的模板
-system_prompt = (f"""你是一个节拍能量技术专家，基于大模型{llm_model}。
+system_prompt = (f"""你是一个{role}，基于大模型{llm_model}。
                你的任务是根据下述给定的已知信息回答用户问题。
                确保你的回复完全依据下述已知信息，不要编造答案。
                请用中文回答用户问题。
