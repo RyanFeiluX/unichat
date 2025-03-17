@@ -28,6 +28,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    align-self: center;
     padding: 10px 20px;
     background-color: #ffffff;
     border-bottom: 1px solid #ebebeb;
@@ -44,6 +45,8 @@ body {
 
 /* 聊天框 */
 .chat-box {
+    display: flex;
+    flex-direction: column;
     flex: 1;
     padding: 20px;
     overflow-y: auto;

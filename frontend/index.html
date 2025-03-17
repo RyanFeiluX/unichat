@@ -3,20 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>问题诊断智能助手</title>
+    <title>信息咨询智能助手</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="chat-container">
         <div class="header">
-            <div class="header-title">开始</div>
+            <div class="header-title">对话框</div>
             <div class="header-actions">
                 <!-- 这里可以放置分享图标或其他按钮 -->
             </div>
         </div>
         <div id="chat-box" class="chat-box"></div>
         <div class="input-container">
-            <input type="text" id="user-input" placeholder="请输入您的问题...">
+<!--            <input type="text" id="user-input" placeholder="请输入您的问题...">-->
+            <input type="text" id="user-input" placeholder="请输入您的问题..." onkeydown="keyDown()" autofocus>
             <button id="send-button" onclick="sendMessage()">发送</button>
         </div>
     </div>

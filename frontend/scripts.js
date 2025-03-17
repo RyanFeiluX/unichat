@@ -21,6 +21,7 @@ function sendMessage() {
     });
 
     document.getElementById('user-input').value = '';
+    document.getElementById('user-input').focus();
 }
 
 function appendMessage(sender, message) {
@@ -30,4 +31,13 @@ function appendMessage(sender, message) {
     messageElement.innerText = message;
     chatBox.appendChild(messageElement);
     chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function keyDown(e) {
+  var keycode = event.keyCode||e.which||e.charCode;
+
+  if (keycode == 13 ) //回车键是13
+  {
+      sendMessage();//回车后的响应函数
+  }
 }
