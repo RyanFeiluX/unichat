@@ -1,5 +1,5 @@
 # unichat
-Implementing multiple LLM models with RAG Knowledge Base + Langchain
+Deploy chatbot locally based on RAG technologies. Multiple LLM models are supported. It is easy to setting the LLM model you expects.
 
-# 使用说明
-见:[一百行代码实现自己的RAG知识库](https://www.coderjia.cn/archives/60815d18-68ee-430d-8eb2-b0ae3c5d066f)
+# User Guide
+TBU
