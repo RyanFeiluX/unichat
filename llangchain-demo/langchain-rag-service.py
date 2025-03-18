@@ -28,7 +28,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 print(f'python version : {sys.version}')
 
-# 加载环境变量，读取本地 .env 文件，里面定义了各种配置参数，包括API_KEY
+# Load env variables from local .env file. Several parameters are there, including API_KEY.
 _ = load_dotenv(find_dotenv())
 
 # llm
@@ -59,7 +59,7 @@ elif llm_provider == 'OLLAMA':
 else:
     raise RuntimeWarning(f'LLM provider {llm_provider} is not supported yet.')
 
-# 加载文档,可换成PDF、txt、docx、csv等其他格式文档
+# Load documents in the format of PDF,txt,docx,csv and etc.
 files: str = os.getenv("DOCUMENTS")
 role: str = os.getenv("ROLE")
 pages = []
@@ -67,7 +67,7 @@ for file in files.split(','):
     file = file.strip()
     _, ext = os.path.splitext(file)
     if ext == '.md':
-        # 加载MD
+        # Load .MD document
         print(f'Load markdown document {file} ...')
         loader = TextLoader(file, encoding='utf-8')
         documents = loader.load()
@@ -76,7 +76,7 @@ for file in files.split(','):
         pages.extend(text_splitter.split_documents(documents))
         assert len(pages)>0, f'No content is loaded yet. Please check document {file}'
     elif ext == '.pdf':
-        # 加载PDF
+        # Load .PDF document
         print(f'Load PDF document {file} ...')
         loader = PyMuPDFLoader(file)
         documents = loader.load()
@@ -141,7 +141,7 @@ else:
     raise RuntimeWarning(f'Embedding provider {emb_provider} is not supported. Please check your setting.')
 
 # Maintain history
-store = {}  # 所有用户的聊天记录都保存到store。key:session_id,value:历史聊天记录
+store = {}  # Keep all chat history. key:session_id,value:chat message
 memory_key = "history"
 
 context_system_prompt = (
@@ -159,23 +159,23 @@ context_question_prompt_template = ChatPromptTemplate.from_messages(
     )
 
 
-def get_session_history(session_id) -> BaseChatMessageHistory:  # 一轮对话的内容只存储在一个key/session_id
+def get_session_history(session_id) -> BaseChatMessageHistory:  # A key/session_id pair for a question/answer pair
     if session_id not in store:
         # print(f'Create session \"{session_id}\"')
         store[session_id] = ChatMessageHistory()
     return store[session_id]
 
 
-# 选择向量模型，并灌库
+# Choose vector DB and fill the DB
 db = FAISS.from_documents(texts, embeddings)
-# 获取检索器，选择 top-2 相关的检索结果
+# Get retriever and extract top results
 retriever = db.as_retriever(search_type="mmr", search_kwargs={"k": 6})
 
 history_aware_retriever = create_history_aware_retriever(
         llm, retriever, context_question_prompt_template
     )
 
-# 创建带有 system 消息的模板
+# System message template
 system_prompt = (f"""你是一个{role}。
                你的任务是根据下述给定的已知信息回答用户问题。
                确保你的回复完全依据下述已知信息，不要编造答案。
@@ -184,7 +184,7 @@ system_prompt = (f"""你是一个{role}。
 
                已知信息:"""+
                """"{context} """)
-# 定义提示词模版、引入MessagesPlaceholder来处理多轮对话
+# Define prompt template and add MessagesPlaceholder for multi-q/a chat
 qa_prompt_template = ChatPromptTemplate.from_messages([
     ("system", system_prompt),
     MessagesPlaceholder(variable_name=memory_key),
@@ -202,13 +202,13 @@ msghist_chain = RunnableWithMessageHistory(
     )
 
 
-# 构建 FastAPI 应用，提供服务
+# Create FastAPI application for API service
 app = FastAPI()
 
 user_url = "http://localhost:63342/unichat/frontend/index.html"
 print(f'Please browse {user_url} for chat.')
 
-# 可选，前端报CORS时
+# Optional in case of CORS on frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=['*'],
@@ -218,26 +218,26 @@ app.add_middleware(
 )
 
 
-# 定义请求模型
+# Define request model
 class QuestionRequest(BaseModel):
     question: str
 
 
-# 定义响应模型
+# Define response model
 class AnswerResponse(BaseModel):
     answer: str
 
 
-# 提供查询接口 http://127.0.0.1:8000/ask
+# Provide query API http://127.0.0.1:8000/ask
 @app.post("/ask", response_model=AnswerResponse)
 async def ask_question(request: QuestionRequest):
     try:
-        # 获取用户问题
+        # Get user question
         user_question = request.question
         session_id = "uid"
         print(f'session[{session_id}] question:\"{user_question}\"')
 
-        # 通过RAG链生成回答
+        # Build answer through RAG chain
         # answer = qa_chain.run(user_question)
         answer = msghist_chain.invoke({"input":user_question}, config={"configurable": {"session_id": session_id}})
 
@@ -259,7 +259,7 @@ async def ask_question(request: QuestionRequest):
             summing = ai_answer.strip()
         final_answer = reasoning + summing
 
-        # 返回答案
+        # Return answer
         answer = AnswerResponse(answer=final_answer)
         print(f'answer:{summing}')
         return answer
