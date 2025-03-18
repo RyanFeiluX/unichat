@@ -9,7 +9,7 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_ollama import OllamaEmbeddings, ChatOllama
 from langchain_community.llms.moonshot import Moonshot
 # from langchain_community.llms.baichuan import BaichuanLLM
-from langchain_community.chat_models import ChatZhipuAI, ChatBaichuan
+from langchain_community.chat_models import ChatZhipuAI, ChatBaichuan, ChatTongyi
 from langchain_deepseek import ChatDeepSeek
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import BaichuanTextEmbeddings, ZhipuAIEmbeddings
@@ -52,6 +52,8 @@ elif llm_provider == 'ZHIPUAI':
     llm = ChatZhipuAI(model=llm_model, temperature=0.3)
 elif llm_provider == 'DEEPSEEK':
     llm = ChatDeepSeek(model=llm_model, temperature=0.3)
+elif llm_provider == 'DASHSCOPE':
+    llm = ChatTongyi(model=llm_model, top_p=0.3)
 elif llm_provider == 'OLLAMA':
     llm = ChatOllama(model=llm_model, temperature=0.3)
 else:
@@ -232,7 +234,7 @@ async def ask_question(request: QuestionRequest):
     try:
         # 获取用户问题
         user_question = request.question
-        session_id = "unique-identifier"
+        session_id = "uid"
         print(f'session[{session_id}] question:\"{user_question}\"')
 
         # 通过RAG链生成回答
@@ -263,7 +265,12 @@ async def ask_question(request: QuestionRequest):
         return answer
     except Exception as e:
         print(f'{repr(e)}')
-        raise HTTPException(status_code=e.response.status_code, detail=str(e))
+        m_code = re.match(r'(.*Response \[(\d+)\].*|.*Error code: (\d+).*|.*status_code: (\d+).*)', str(e))
+        if m_code:
+            status_code = sum([int(i) for i in m_code.groups()[1:] if i])
+        else:
+            status_code = 500
+        raise HTTPException(status_code=status_code, detail=str(e))
 
 
 if __name__ == "__main__":
