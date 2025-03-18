@@ -174,10 +174,11 @@ history_aware_retriever = create_history_aware_retriever(
     )
 
 # 创建带有 system 消息的模板
-system_prompt = (f"""你是一个{role}，基于大模型{llm_model}。
+system_prompt = (f"""你是一个{role}。
                你的任务是根据下述给定的已知信息回答用户问题。
                确保你的回复完全依据下述已知信息，不要编造答案。
                请用中文回答用户问题。
+               你采用了{llm_provider}大语言模型{llm_model}。
 
                已知信息:"""+
                """"{context} """)
@@ -261,7 +262,8 @@ async def ask_question(request: QuestionRequest):
         print(f'answer:{summing}')
         return answer
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f'{repr(e)}')
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
 
 
 if __name__ == "__main__":
