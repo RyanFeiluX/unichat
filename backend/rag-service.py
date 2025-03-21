@@ -24,12 +24,24 @@ from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from starlette.middleware.cors import CORSMiddleware
+from starlette.staticfiles import StaticFiles
 
 
 print(f'python version : {sys.version}')
 
+if getattr(sys, 'frozen', False):
+    # 如果是PyInstaller打包的exe
+    app_root = os.path.dirname(sys.executable)
+else:
+    # 普通的Python脚本
+    app_root = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+print(f'APP ROOT: {app_root}')
+
 # Load env variables from local .env file. Several parameters are there, including API_KEY.
-_ = load_dotenv(find_dotenv())
+os.chdir(os.path.dirname(__file__))
+dotenv_path=find_dotenv(filename='.env', raise_error_if_not_found=True)
+print(f'dotenv={dotenv_path}')
+_ = load_dotenv(dotenv_path=os.path.abspath(dotenv_path))
 
 # llm
 llm_provider = os.getenv("LLM_PROVIDER")
@@ -64,7 +76,7 @@ files: str = os.getenv("DOCUMENTS")
 role: str = os.getenv("ROLE")
 pages = []
 for file in files.split(','):
-    file = file.strip()
+    file = os.path.abspath(os.path.join(app_root, file.strip()))
     _, ext = os.path.splitext(file)
     if ext == '.md':
         # Load .MD document
@@ -204,6 +216,7 @@ msghist_chain = RunnableWithMessageHistory(
 
 # Create FastAPI application for API service
 app = FastAPI()
+app.mount('/static', StaticFiles(directory=os.path.join(app_root, 'frontend')), 'static')
 
 user_url = "http://localhost:63342/unichat/frontend/index.html"
 print(f'Please browse {user_url} for chat.')
@@ -245,7 +258,7 @@ async def ask_question(request: QuestionRequest):
         ai_thinks = []
         thinks = re.findall(r'<think>([\s\S]*)</think>', ai_answer)
         if len(thinks)>0:
-            [ai_thinks.append(t.strip()) for t in thinks]
+            [ai_thinks.append(th.strip()) for th in thinks]
             reasoning = '<<<<<< 推理开始 >>>>>>\n\n' + '\n------\n'.join(ai_thinks) + '\n\n<<<<<< 推理完成 >>>>>>\n\n'
         else:
             reasoning = ''
@@ -273,5 +286,11 @@ async def ask_question(request: QuestionRequest):
         raise HTTPException(status_code=status_code, detail=str(e))
 
 
+#  Build API for external use
+@app.get("/")
+async def get_status():
+    return {"method": "get", "name": "Chat status"}
+
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8000, app_dir=app_root)
