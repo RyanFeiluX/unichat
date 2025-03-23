@@ -17,9 +17,11 @@ from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.document_loaders import TextLoader, PyMuPDFLoader
+from langchain_community.document_loaders.markdown import UnstructuredMarkdownLoader
 from langchain_community.document_loaders.csv_loader import CSVLoader
 from langchain_community.document_loaders.word_document import Docx2txtLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter, Language
+from langchain_text_splitters.markdown import MarkdownTextSplitter
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
@@ -73,17 +75,25 @@ else:
 
 # Load documents in the format of PDF,txt,docx,csv and etc.
 files: str = os.getenv("DOCUMENTS")
-role: str = os.getenv("ROLE")
+robot_desc: str = os.getenv("ROBOT_DESC")
 pages = []
 for file in files.split(','):
     file = os.path.abspath(os.path.join(app_root, file.strip()))
     _, ext = os.path.splitext(file)
-    if ext == '.md':
+    if ext == '.txt':
+        # Load .txt document
+        print(f'Load text document {file} ...')
+        loader = TextLoader(file, encoding='utf-8', autodetect_encoding=True)
+        documents = loader.load()
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=20)
+        pages.extend(text_splitter.split_documents(documents))
+        assert len(pages)>0, f'No content is loaded yet. Please check document {file}'
+    elif ext == '.md':
         # Load .MD document
         print(f'Load markdown document {file} ...')
-        loader = TextLoader(file, encoding='utf-8')
+        loader = UnstructuredMarkdownLoader(file, mode='elements', encoding='utf-8')
         documents = loader.load()
-        text_splitter = RecursiveCharacterTextSplitter.from_language(language=Language("markdown"),
+        text_splitter = MarkdownTextSplitter.from_language(language=Language("markdown"),
                                                                      chunk_size=300, chunk_overlap=20)
         pages.extend(text_splitter.split_documents(documents))
         assert len(pages)>0, f'No content is loaded yet. Please check document {file}'
@@ -98,7 +108,7 @@ for file in files.split(','):
         assert len(pages)>0, f'No content is loaded yet. Please check document {file}'
     elif ext == '.docx':
         # Load Word document
-        print(f'Load Word document...')
+        print(f'Load Word document {file} ...')
         loader = Docx2txtLoader(file_path=file)
         documents = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=20)
@@ -107,7 +117,7 @@ for file in files.split(','):
         assert len(pages)>0, f'No content is loaded yet. Please check document {file}'
     elif ext == '.csv':
         # Load CSV document
-        print(f'Load CSV document...')
+        print(f'Load CSV document {file} ...')
         loader = CSVLoader(file_path=file, encoding='utf-8')
         documents = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=20)
@@ -181,14 +191,14 @@ def get_session_history(session_id) -> BaseChatMessageHistory:  # A key/session_
 # Choose vector DB and fill the DB
 db = FAISS.from_documents(texts, embeddings)
 # Get retriever and extract top results
-retriever = db.as_retriever(search_type="mmr", search_kwargs={"k": 6})
+retriever = db.as_retriever(search_type="mmr", search_kwargs={"k": 3})
 
 history_aware_retriever = create_history_aware_retriever(
         llm, retriever, context_question_prompt_template
     )
 
 # System message template
-system_prompt = (f"""你是一个{role}。
+system_prompt = (f"""{robot_desc}。
                你的任务是根据下述给定的已知信息回答用户问题。
                确保你的回复完全依据下述已知信息，不要编造答案。
                请用中文回答用户问题。
@@ -252,14 +262,19 @@ async def ask_question(request: QuestionRequest):
 
         # Build answer through RAG chain
         # answer = qa_chain.run(user_question)
-        answer = msghist_chain.invoke({"input":user_question}, config={"configurable": {"session_id": session_id}})
+        answer = msghist_chain.invoke({"input":user_question},
+                                      config={"configurable": {"session_id": session_id}})
 
         ai_answer = answer['answer']
         ai_thinks = []
         thinks = re.findall(r'<think>([\s\S]*)</think>', ai_answer)
         if len(thinks)>0:
             [ai_thinks.append(th.strip()) for th in thinks]
-            reasoning = '<<<<<< 推理开始 >>>>>>\n\n' + '\n------\n'.join(ai_thinks) + '\n\n<<<<<< 推理完成 >>>>>>\n\n'
+            if len(ai_thinks)>0:
+                reasoning = ('<<<<<< 推理开始 >>>>>>\n\n' + '\n------\n'.join(ai_thinks)
+                             + '\n\n<<<<<< 推理完成 >>>>>>\n\n')
+            else:
+                reasoning = ''
         else:
             reasoning = ''
         if len(thinks) > 0:
