@@ -34,36 +34,39 @@ function appendMessage(sender, message) {
 }
 
 function keyDown(e) {
-  var keycode = event.keyCode||e.which||e.charCode;
+    var keycode = event.keyCode||e.which||e.charCode;
 
-  if (keycode == 13 ) //回车键是13
-  {
-      sendMessage();//回车后的响应函数
-  }
+    if (keycode == 13 ) //Enter=13
+    {
+        sendMessage(); //Invoke the function to send the message when the Enter key is pressed.
+    }
 }
 
-//window.onbeforeunload = function(){
-//    var html = document.querySelector("html");
-//    sessionStorage.setItem("pre",html.innerHTML);
-//}
+window.onbeforeunload = function(){
+    var html = document.querySelector("html");
+    sessionStorage.setItem("pre",html.innerHTML);
+}
 
-//window.addEventListener("load",function(){
-//    var before = sessionStorage.getItem("loadtime");
-//    if(!before){
-//        sessionStorage.setItem("loadtime",1);
-//    }else{
-//        sessionStorage.setItem("loadtime",parseInt(before)+1);
-//    }//sessionStorage采用的是key-value形式，第二个参数为字符串类型，如果不对before值作整型处理，javascript会认为是字符串的拼接，这样就无法起到数字递增的效果
-//    var storetime = sessionStorage.getItem("loadtime");
-//    //console.log(storetime);
-//    if(storetime>1){
-//       var preHtml = sessionStorage.getItem("pre");
-//       var html = document.querySelector("html");
-//       html.innerHTML = preHtml;
-//
-//     }else if(storetime==1){
-//        sessionStorage.removeItem("pre");
-//     }
-//
-//    //后续控制交互行为或者处理业务的js代码
-//})
+window.addEventListener("load",function(){
+    var before = sessionStorage.getItem("loadtime");
+    if(!before){
+        sessionStorage.setItem("loadtime",1);
+    }else{
+        sessionStorage.setItem("loadtime",parseInt(before)+1);
+    }//sessionStorage采用的是key-value形式，第二个参数为字符串类型，如果不对before值作整型处理，javascript会认为是字符串的拼接，这样就无法起到数字递增的效果
+    var storetime = sessionStorage.getItem("loadtime");
+    //console.log(storetime);
+    if(storetime>1){
+        var preHtml = sessionStorage.getItem("pre");
+        var html = document.querySelector("html");
+        html.innerHTML = preHtml;
+
+    }else if(storetime==1){
+        sessionStorage.removeItem("pre");
+    }
+
+    const chatBox = document.getElementById('chat-box');
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    //后续控制交互行为或者处理业务的js代码
+})
