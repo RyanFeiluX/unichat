@@ -28,8 +28,8 @@ pyinstaller --onedir ^
             --noconfirm ^
             --collect-all pydantic ^
             --collect-submodules langchain.chains ^
-            --exclude-module pyinstaller ^
-            --add-data "%CD%\dist\unichat\frontend:frontend" ^
+            --exclude-module pyinstaller,pillow ^
+            -i %CD%\resources\icon2.ico ^
             %script%
 
 cd %CD% && copy %CD%\backend\.env %CD%\dist\unichat\.env
