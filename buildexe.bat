@@ -1,4 +1,5 @@
 @echo off
+@chcp 65001
 REM Set the script path
 @set script=../unichat/backend/rag-service.py
 
@@ -32,7 +33,16 @@ pyinstaller --onedir ^
             -i %CD%\resources\icon2.ico ^
             %script%
 
-cd %CD% && copy %CD%\backend\.env %CD%\dist\unichat\.env
+cd %CD%
+if exist "dist\unichat\backend" (
+  rd /S /Q dist\unichat\backend
+)
+mkdir dist\unichat\backend
+if exist "backend\.env" (
+  copy %CD%\backend\.env %CD%\dist\unichat\backend
+)
+copy %CD%\backend\sta_config.toml %CD%\dist\unichat\backend\sta_config.toml
+copy %CD%\backend\factory.toml %CD%\dist\unichat\backend\dyn_config.toml
 if exist "dist\unichat\frontend" (
   rd /S /Q dist\unichat\frontend
 )
@@ -40,4 +50,4 @@ mkdir dist\unichat\frontend && copy frontend\* dist\unichat\frontend
 if exist "dist\unichat\docs" (
   rd /S /Q dist\unichat\docs
 )
-mkdir dist\unichat\docs && copy docs\* dist\unichat\docs
+mkdir dist\unichat\docs && copy docs\QA.md dist\unichat\docs\QA.md

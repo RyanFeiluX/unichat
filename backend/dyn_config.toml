@@ -1,0 +1,22 @@
+[Knowledge]
+# Acceptable: .md,.pdf,.docx,.csv
+#"docs/解答手册.md","docs/tick-energy.pdf","docs/高氧手环内部资料.txt","docs/节拍能量体系的高维理论入口.txt"
+DOCUMENTS="docs/tick-energy.docx,docs/高氧手环内部资料.txt,docs/节拍能量体系的高维理论入口.txt"
+ROBOT_DESC="你是节拍能量技术咨询助理，随时准备回答用户的相关问题。"
+
+##############
+[Deployment]
+#"OPENAI","MOONSHOT","BAICHUAN","ZHIPUAI","DEEPSEEK","DASHSCOPE","OLLAMA"
+LLM_PROVIDER="OLLAMA"
+#The default model defined in Provider section is picked if empty here.
+# moonshot-v1-8k,moonshot-v1-32k，moonshot-v1-128k
+# Baichuan3-Turbo
+# GLM-4-AirX
+# deepseek-chat,deepseek-reasoner,deepseek-r1:1.5b,deepseek-r1:8b,deepseek-r1:14b
+# qwen2-0.5b-instruct(not for Ollama)
+# phi4:14b(Ollama Only)
+LLM_MODEL="deepseek-r1:1.5b"
+#"OPENAI","BAICHUAN","ZHIPUAI","OLLAMA"
+EMB_PROVIDER="OLLAMA"
+#Conditionally mandatory for Ollama.
+EMB_MODEL="deepseek-r1:1.5b"

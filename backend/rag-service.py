@@ -3,6 +3,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from dotenv import load_dotenv, find_dotenv
+import toml
 # from langchain_community.embeddings import OpenAIEmbeddings
 from langchain.chains import RetrievalQA
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
@@ -41,20 +42,27 @@ print(f'APP ROOT: {app_root}')
 
 # Load env variables from local .env file. Several parameters are there, including API_KEY.
 os.chdir(os.path.dirname(__file__))
-dotenv_path=find_dotenv(filename='.env', raise_error_if_not_found=True)
-print(f'dotenv={dotenv_path}')
-_ = load_dotenv(dotenv_path=os.path.abspath(dotenv_path))
+dotenv_path=find_dotenv(filename='.env', raise_error_if_not_found=False)
+if dotenv_path:
+    print(f'dotenv={dotenv_path}')
+    _ = load_dotenv(dotenv_path=os.path.abspath(dotenv_path))
+
+# Load config parameters
+scfg = toml.load(os.path.expanduser("sta_config.toml"))
+dcfg = toml.load(os.path.expanduser("dyn_config.toml"))
 
 # llm
-llm_provider = os.getenv("LLM_PROVIDER")
+llm_provider = dcfg['Deployment']['LLM_PROVIDER'] #os.getenv("LLM_PROVIDER")
 if llm_provider:
     print(f'LLM provider : {llm_provider}')
-    llm_model = os.getenv("LLM_MODEL") or os.getenv(f'{llm_provider}_LLM_MODEL')
+    # llm_model = os.getenv("LLM_MODEL") or os.getenv(f'{llm_provider}_LLM_MODEL')
+    llm_model = dcfg['Deployment']['LLM_MODEL'] or dcfg['Deployment'][f'{llm_provider}_LLM_MODEL']
     print(f'LLM model : {llm_model}')
 else:
     llm_provider = 'OPENAI'
     print(f'LLM provider : {llm_provider} picked by default.')
-    llm_model = os.getenv(f'{llm_provider}_LLM_MODEL')
+    # llm_model = os.getenv(f'{llm_provider}_LLM_MODEL')
+    llm_model = dcfg['Deployment'][f'{llm_provider}_LLM_MODEL']
     print(f'LLM model : {llm_model}')
 if llm_provider == 'OPENAI':
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
@@ -74,8 +82,8 @@ else:
     raise RuntimeWarning(f'LLM provider {llm_provider} is not supported yet.')
 
 # Load documents in the format of PDF,txt,docx,csv and etc.
-files: str = os.getenv("DOCUMENTS")
-robot_desc: str = os.getenv("ROBOT_DESC")
+files: str = dcfg['Knowledge']['DOCUMENTS'] #os.getenv("DOCUMENTS")
+robot_desc: str = dcfg['Knowledge']['ROBOT_DESC'] # os.getenv("ROBOT_DESC")
 pages = []
 for file in files.split(','):
     file = os.path.abspath(os.path.join(app_root, file.strip()))
@@ -139,15 +147,15 @@ texts = text_splitter.create_documents(
 for j, t in enumerate(texts):
     t.id=f'Doc-{j}'
 
-emb_provider = os.getenv('EMB_PROVIDER')
+emb_provider = dcfg['Deployment']['EMB_PROVIDER'] # os.getenv('EMB_PROVIDER')
 if emb_provider:
     print(f'Embedding provider : {emb_provider}')
-    emb_model = os.getenv(f"EMB_MODEL")
+    emb_model = dcfg['Deployment']['EMB_MODEL'] # os.getenv(f"EMB_MODEL")
     print(f'Embedding model : {emb_model}')
 else:
     emb_provider = 'OPENAI'
     print(f'Embedding provider : {emb_provider} picked by default.')
-    emb_model = os.getenv(f"{emb_provider}_EMB_MODEL")
+    emb_model = dcfg['Deployment'][f"{emb_provider}_EMB_MODEL"] # os.getenv(f"{emb_provider}_EMB_MODEL")
     print(f'Embedding model : {emb_model}')
 if emb_provider == 'OPENAI':
     embeddings = OpenAIEmbeddings(model=emb_model) #"text-embedding-ada-002"
