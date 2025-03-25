@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from dotenv import load_dotenv, find_dotenv
 import toml
+import tomlkit  # Import tomlkit for round-trip parsing
 # from langchain_community.embeddings import OpenAIEmbeddings
 from langchain.chains import RetrievalQA
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
@@ -28,7 +29,7 @@ from langchain.chains import create_history_aware_retriever, create_retrieval_ch
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
-
+from typing import List, Dict, Union
 
 print(f'python version : {sys.version}')
 
@@ -42,7 +43,7 @@ print(f'APP ROOT: {app_root}')
 
 # Load env variables from local .env file. Several parameters are there, including API_KEY.
 os.chdir(os.path.dirname(__file__))
-dotenv_path=find_dotenv(filename='.env', raise_error_if_not_found=False)
+dotenv_path = find_dotenv(filename='.env', raise_error_if_not_found=False)
 if dotenv_path:
     print(f'dotenv={dotenv_path}')
     _ = load_dotenv(dotenv_path=os.path.abspath(dotenv_path))
@@ -52,17 +53,18 @@ scfg = toml.load(os.path.expanduser("sta_config.toml"))
 dcfg = toml.load(os.path.expanduser("dyn_config.toml"))
 
 # llm
-llm_provider = dcfg['Deployment']['LLM_PROVIDER'] #os.getenv("LLM_PROVIDER")
+llm_provider = dcfg['Deployment']['LLM_PROVIDER']  # os.getenv("LLM_PROVIDER")
 if llm_provider:
     print(f'LLM provider : {llm_provider}')
     # llm_model = os.getenv("LLM_MODEL") or os.getenv(f'{llm_provider}_LLM_MODEL')
-    llm_model = dcfg['Deployment']['LLM_MODEL'] or dcfg['Deployment'][f'{llm_provider}_LLM_MODEL']
+    llm_model = (dcfg['Deployment']['LLM_MODEL']
+                 or scfg['Providers'][llm_provider][f'{llm_provider}_LLM_MODEL'].split(',')[0])
     print(f'LLM model : {llm_model}')
 else:
     llm_provider = 'OPENAI'
     print(f'LLM provider : {llm_provider} picked by default.')
     # llm_model = os.getenv(f'{llm_provider}_LLM_MODEL')
-    llm_model = dcfg['Deployment'][f'{llm_provider}_LLM_MODEL']
+    llm_model = scfg['Deployment'][llm_provider][f'{llm_provider}_LLM_MODEL'].split(',')[0]
     print(f'LLM model : {llm_model}')
 if llm_provider == 'OPENAI':
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
@@ -82,8 +84,8 @@ else:
     raise RuntimeWarning(f'LLM provider {llm_provider} is not supported yet.')
 
 # Load documents in the format of PDF,txt,docx,csv and etc.
-files: str = dcfg['Knowledge']['DOCUMENTS'] #os.getenv("DOCUMENTS")
-robot_desc: str = dcfg['Knowledge']['ROBOT_DESC'] # os.getenv("ROBOT_DESC")
+files: str = dcfg['Knowledge']['DOCUMENTS']  # os.getenv("DOCUMENTS")
+robot_desc: str = dcfg['Knowledge']['ROBOT_DESC']  # os.getenv("ROBOT_DESC")
 pages = []
 for file in files.split(','):
     file = os.path.abspath(os.path.join(app_root, file.strip()))
@@ -95,16 +97,16 @@ for file in files.split(','):
         documents = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=20)
         pages.extend(text_splitter.split_documents(documents))
-        assert len(pages)>0, f'No content is loaded yet. Please check document {file}'
+        assert len(pages) > 0, f'No content is loaded yet. Please check document {file}'
     elif ext == '.md':
         # Load .MD document
         print(f'Load markdown document {file} ...')
         loader = UnstructuredMarkdownLoader(file, mode='elements', encoding='utf-8')
         documents = loader.load()
         text_splitter = MarkdownTextSplitter.from_language(language=Language("markdown"),
-                                                                     chunk_size=300, chunk_overlap=20)
+                                                           chunk_size=300, chunk_overlap=20)
         pages.extend(text_splitter.split_documents(documents))
-        assert len(pages)>0, f'No content is loaded yet. Please check document {file}'
+        assert len(pages) > 0, f'No content is loaded yet. Please check document {file}'
     elif ext == '.pdf':
         # Load .PDF document
         print(f'Load PDF document {file} ...')
@@ -113,7 +115,7 @@ for file in files.split(','):
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=20)
         doc_pages = text_splitter.split_documents(documents)
         pages.extend(doc_pages)
-        assert len(pages)>0, f'No content is loaded yet. Please check document {file}'
+        assert len(pages) > 0, f'No content is loaded yet. Please check document {file}'
     elif ext == '.docx':
         # Load Word document
         print(f'Load Word document {file} ...')
@@ -122,7 +124,7 @@ for file in files.split(','):
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=20)
         doc_pages = text_splitter.split_documents(documents)
         pages.extend(doc_pages)
-        assert len(pages)>0, f'No content is loaded yet. Please check document {file}'
+        assert len(pages) > 0, f'No content is loaded yet. Please check document {file}'
     elif ext == '.csv':
         # Load CSV document
         print(f'Load CSV document {file} ...')
@@ -131,7 +133,7 @@ for file in files.split(','):
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=20)
         doc_pages = text_splitter.split_documents(documents)
         pages.extend(doc_pages)
-        assert len(pages)>0, f'No content is loaded yet. Please check document {file}'
+        assert len(pages) > 0, f'No content is loaded yet. Please check document {file}'
     else:
         raise RuntimeWarning(f'File type {ext} is not supported yet.')
 
@@ -145,24 +147,24 @@ texts = text_splitter.create_documents(
     [page.page_content for page in pages]
 )
 for j, t in enumerate(texts):
-    t.id=f'Doc-{j}'
+    t.id = f'Doc-{j}'
 
-emb_provider = dcfg['Deployment']['EMB_PROVIDER'] # os.getenv('EMB_PROVIDER')
+emb_provider = dcfg['Deployment']['EMB_PROVIDER']  # os.getenv('EMB_PROVIDER')
 if emb_provider:
     print(f'Embedding provider : {emb_provider}')
-    emb_model = dcfg['Deployment']['EMB_MODEL'] # os.getenv(f"EMB_MODEL")
+    emb_model = dcfg['Deployment']['EMB_MODEL']  # os.getenv(f"EMB_MODEL")
     print(f'Embedding model : {emb_model}')
 else:
     emb_provider = 'OPENAI'
     print(f'Embedding provider : {emb_provider} picked by default.')
-    emb_model = dcfg['Deployment'][f"{emb_provider}_EMB_MODEL"] # os.getenv(f"{emb_provider}_EMB_MODEL")
+    emb_model = dcfg['Deployment'][f"{emb_provider}_EMB_MODEL"]  # os.getenv(f"{emb_provider}_EMB_MODEL")
     print(f'Embedding model : {emb_model}')
 if emb_provider == 'OPENAI':
-    embeddings = OpenAIEmbeddings(model=emb_model) #"text-embedding-ada-002"
+    embeddings = OpenAIEmbeddings(model=emb_model)  # "text-embedding-ada-002"
 elif emb_provider == 'BAICHUAN':
     embeddings = BaichuanTextEmbeddings(model=emb_model) if emb_model else BaichuanTextEmbeddings()
 elif emb_provider == 'ZHIPUAI':
-    embeddings = ZhipuAIEmbeddings() #'glm-3-turbo'
+    embeddings = ZhipuAIEmbeddings()  # 'glm-3-turbo'
 elif emb_provider.startswith('OLLAMA'):  # This branch is handled specially.
     print(f'NOTE: You have chosen Ollama as embedding framework. Please run up Ollama locally beforehand.')
     assert emb_model, f'One model must be specified in case of Ollama for embedding.'
@@ -175,18 +177,18 @@ store = {}  # Keep all chat history. key:session_id,value:chat message
 memory_key = "history"
 
 context_system_prompt = (
-        "Given a chat history and the latest user question which might reference context in the chat history, "
-        "formulate a standalone question which can be understood without the chat history. "
-        "Do NOT answer the question, just reformulate it if needed and otherwise return it as is."
-    )
+    "Given a chat history and the latest user question which might reference context in the chat history, "
+    "formulate a standalone question which can be understood without the chat history. "
+    "Do NOT answer the question, just reformulate it if needed and otherwise return it as is."
+)
 
 context_question_prompt_template = ChatPromptTemplate.from_messages(
-        [
-            ("system", context_system_prompt),
-            MessagesPlaceholder(memory_key),
-            ("human", "{input}"),
-        ]
-    )
+    [
+        ("system", context_system_prompt),
+        MessagesPlaceholder(memory_key),
+        ("human", "{input}"),
+    ]
+)
 
 
 def get_session_history(session_id) -> BaseChatMessageHistory:  # A key/session_id pair for a question/answer pair
@@ -202,8 +204,8 @@ db = FAISS.from_documents(texts, embeddings)
 retriever = db.as_retriever(search_type="mmr", search_kwargs={"k": 3})
 
 history_aware_retriever = create_history_aware_retriever(
-        llm, retriever, context_question_prompt_template
-    )
+    llm, retriever, context_question_prompt_template
+)
 
 # System message template
 system_prompt = (f"""{robot_desc}。
@@ -212,8 +214,8 @@ system_prompt = (f"""{robot_desc}。
                请用中文回答用户问题。
                你采用了{llm_provider}大语言模型{llm_model}。
 
-               已知信息:"""+
-               """"{context} """)
+               已知信息:""" +
+                 """"{context} """)
 # Define prompt template and add MessagesPlaceholder for multi-q/a chat
 qa_prompt_template = ChatPromptTemplate.from_messages([
     ("system", system_prompt),
@@ -224,13 +226,12 @@ qa_prompt_template = ChatPromptTemplate.from_messages([
 qa_chain = create_stuff_documents_chain(llm, qa_prompt_template)
 rag_qa_chain = create_retrieval_chain(history_aware_retriever, qa_chain)
 msghist_chain = RunnableWithMessageHistory(
-        rag_qa_chain,
-        get_session_history,
-        input_messages_key="input",
-        history_messages_key=memory_key,
-        output_messages_key="answer",
-    )
-
+    rag_qa_chain,
+    get_session_history,
+    input_messages_key="input",
+    history_messages_key=memory_key,
+    output_messages_key="answer",
+)
 
 # Create FastAPI application for API service
 app = FastAPI()
@@ -270,22 +271,22 @@ async def ask_question(request: QuestionRequest):
 
         # Build answer through RAG chain
         # answer = qa_chain.run(user_question)
-        answer = msghist_chain.invoke({"input":user_question},
-                                      config={"configurable": {"session_id": session_id}})
+        answer = msghist_chain.invoke({"input": user_question},
+                                            config={"configurable": {"session_id": session_id}})
 
         ai_answer = answer['answer']
         ai_thinks = []
         thinks = re.findall(r'<think>([\s\S]*)</think>', ai_answer)
-        if len(thinks)>0:
-            [ai_thinks.append(th.strip()) for th in thinks]
-            if len(ai_thinks)>0:
+        if len(thinks) > 0:
+            [ai_thinks.append(th.strip()) for th in thinks if len(th.strip())>0]
+            if len(ai_thinks) > 0:
                 reasoning = ('<<<<<< 推理开始 >>>>>>\n\n' + '\n------\n'.join(ai_thinks)
                              + '\n\n<<<<<< 推理完成 >>>>>>\n\n')
             else:
                 reasoning = ''
         else:
             reasoning = ''
-        if len(thinks) > 0:
+        if len(reasoning) > 0:
             summary = re.match(r'[\s\S]*</think>([\s\S]*)', ai_answer)
             if summary:
                 summing = summary.group(1).strip()
@@ -309,11 +310,66 @@ async def ask_question(request: QuestionRequest):
         raise HTTPException(status_code=status_code, detail=str(e))
 
 
-#  Build API for external use
-@app.get("/")
-async def get_status():
-    return {"method": "get", "name": "Chat status"}
+@app.get('/')
+async def get_root():
+    return {'message': 'Hello UniChat'}
+
+
+class ModelSelect(BaseModel):
+    llm_provider: str
+    llm_model: str
+    emb_provider: str
+    emb_model: str
+
+
+@app.get("/api")
+async def fetch_any():
+    print(f'GET: /api')
+    return {'API': 'config'}
+
+class ConfigSet(BaseModel):
+    model_support: List[Dict[str, Union[str, List[str]]]]
+
+
+# API for http://127.0.0.1:8000/api/config
+@app.get("/api/config", response_model=ConfigSet)
+async def fetch_config():
+    print(f'GET: /api/config')
+    options: list = []
+    for p in scfg['Providers'].keys():
+        options.append({'provider': p,
+                        'llm_model': scfg['Providers'][p][f'{p.upper()}_LLM_MODEL'].split(','),
+                        'emb_model': scfg['Providers'][p][f'{p.upper()}_EMB_MODEL'].split(',')}
+                       )
+    return ConfigSet(model_support=options)
+
+
+# API for http://127.0.0.1:8000/api/config
+@app.put("/api/config")
+async def save_config(options: ModelSelect):
+    print(f'PUT: /api/config')
+    dcfg['Deployment']['LLM_PROVIDER'] = options.llm_provider
+    dcfg['Deployment']['LLM_MODEL'] = options.llm_model
+    dcfg['Deployment']['EMB_PROVIDER'] = options.emb_provider
+    dcfg['Deployment']['EMB_MODEL'] = options.emb_model
+
+    # Load the original TOML file with tomlkit to preserve structure and comments
+    with open(os.path.expanduser("dyn_config.toml"), "r", encoding="utf-8") as f:
+        dyn_config = tomlkit.parse(f.read())
+
+    # Update the TOML structure with new values
+    dyn_config['Deployment']['LLM_PROVIDER'] = options.llm_provider
+    dyn_config['Deployment']['LLM_MODEL'] = options.llm_model
+    dyn_config['Deployment']['EMB_PROVIDER'] = options.emb_provider
+    dyn_config['Deployment']['EMB_MODEL'] = options.emb_model
+
+    # Write the updated TOML back to the file
+    with open(os.path.expanduser("dyn_config.toml"), "w", encoding="utf-8") as f:
+        f.write(tomlkit.dumps(dyn_config))
+        f.flush()
+
+    return {"message": "Configuration updated successfully"}
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000, app_dir=app_root)
+    uvicorn.run('rag-service:app', host="127.0.0.1", port=8000)

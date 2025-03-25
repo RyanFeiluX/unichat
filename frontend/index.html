@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>信息咨询智能助手</title>
+    <title>智能助手</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -14,13 +14,37 @@
                 <!-- 这里可以放置分享图标或其他按钮 -->
             </div>
         </div>
-        <div id="chat-box" class="chat-box"></div>
+        <div id="chat-box" class="chat-box">
+            <button id="config-button" onclick="openConfigModal()" style="position: absolute; top: 10px; right: 10px;">
+                <img src="../resources/gear-icon.png" alt="配置" style="width: 20px; height: 20px;">
+            </button>
+        </div>
         <div class="input-container">
-<!--            <input type="text" id="user-input" placeholder="请输入您的问题...">-->
             <input type="text" id="user-input" placeholder="请输入您的问题..." onkeydown="keyDown()" autofocus>
             <button id="send-button" onclick="sendMessage()">发送</button>
         </div>
     </div>
+
+    <!-- Configuration Modal -->
+    <div id="config-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeConfigModal()">&times;</span>
+            <h2>配置</h2>
+            <label for="llm-provider">LLM供应商:</label>
+            <select id="llm-provider" onchange="updateLlmModels()"></select>
+            <label for="llm-model">LLM模型:</label>
+            <select id="llm-model"></select>
+            <label for="embedding-provider">Embedding供应商:</label>
+            <select id="embedding-provider" onchange="updateEmbeddingModels()"></select>
+            <label for="embedding-model">Embedding模型:</label>
+            <select id="embedding-model"></select>
+            <button onclick="saveConfig()">保存</button>
+        </div>
+    </div>
+
     <script src="scripts.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', initializeConfig);
+    </script>
 </body>
 </html>
