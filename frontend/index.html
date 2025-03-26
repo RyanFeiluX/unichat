@@ -28,17 +28,29 @@
     <!-- Configuration Modal -->
     <div id="config-modal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="closeConfigModal()">&times;</span>
+            <span class="close" onclick="closeConfigModal()">&times;</span> <!-- Close button moved to top-right -->
             <h2>配置</h2>
-            <label for="llm-provider">LLM供应商:</label>
-            <select id="llm-provider" onchange="updateLlmModels()"></select>
-            <label for="llm-model">LLM模型:</label>
-            <select id="llm-model"></select>
-            <label for="embedding-provider">Embedding供应商:</label>
-            <select id="embedding-provider" onchange="updateEmbeddingModels()"></select>
-            <label for="embedding-model">Embedding模型:</label>
-            <select id="embedding-model"></select>
-            <button onclick="saveConfig()">保存</button>
+            <div class="config-row">
+                <div>
+                    <label for="llm-provider">LLM供应商:</label>
+                    <select id="llm-provider" onchange="updateLlmModels()"></select>
+                </div>
+                <div>
+                    <label for="llm-model">LLM模型:</label>
+                    <select id="llm-model"></select>
+                </div>
+            </div>
+            <div class="config-row">
+                <div>
+                    <label for="embedding-provider">Embedding供应商:</label>
+                    <select id="embedding-provider" onchange="updateEmbeddingModels()"></select>
+                </div>
+                <div>
+                    <label for="embedding-model">Embedding模型:</label>
+                    <select id="embedding-model"></select>
+                </div>
+            </div>
+            <button class="save-button" onclick="saveConfig()">保存</button>
         </div>
     </div>
 

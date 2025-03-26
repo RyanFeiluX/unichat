@@ -141,3 +141,45 @@ body {
     text-decoration: none;
     cursor: pointer;
 }
+
+/* Add styles for fixed width and spacing */
+#config-modal select {
+    width: 200px; /* Fixed width for dropdowns */
+    margin-bottom: 10px; /* Add spacing between dropdowns */
+}
+
+#config-modal button {
+    margin-top: 20px; /* Add spacing above the save button */
+}
+
+#config-modal .modal-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 400px; /* Adjust modal width to fit configuration items */
+    position: relative; /* For positioning the close button */
+}
+
+#config-modal .config-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px; /* Reduce gap between columns */
+}
+
+#config-modal .config-row label,
+#config-modal .config-row select {
+    flex: 1;
+    text-align: left; /* Align dropdowns to the left */
+}
+
+#config-modal .save-button {
+    align-self: flex-end;
+}
+
+#config-modal .close {
+    position: absolute;
+    top: 10px;
+    right: 10px; /* Move close button to the top-right corner */
+    font-size: 20px;
+    cursor: pointer;
+}
