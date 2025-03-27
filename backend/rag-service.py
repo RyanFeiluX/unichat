@@ -1,6 +1,6 @@
 import os, sys, re
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from dotenv import load_dotenv, find_dotenv
 import toml
@@ -369,6 +369,55 @@ async def save_config(options: ModelSelect):
         f.flush()
 
     return {"message": "Configuration updated successfully"}
+
+
+@app.post("/api/upload-documents")
+async def upload_documents(documents: List[UploadFile] = File(...)):
+    try:
+        for document in documents:
+            file_path = os.path.join(app_root, "uploaded_documents", document.filename)
+            with open(file_path, "wb") as f:
+                f.write(await document.read())
+        return {"message": "Documents uploaded successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error uploading documents: {str(e)}")
+
+
+@app.put("/api/save-knowledge")
+async def save_knowledge(data: Dict[str, str]):
+    try:
+        knowledge_text = data.get("knowledge", "")
+        system_prompt = data.get("system_prompt", "")
+
+        knowledge_file = os.path.join(app_root, "knowledge.txt")
+        system_prompt_file = os.path.join(app_root, "system_prompt.txt")
+
+        # Save knowledge text
+        with open(knowledge_file, "w", encoding="utf-8") as f:
+            f.write(knowledge_text)
+
+        # Save system prompt
+        with open(system_prompt_file, "w", encoding="utf-8") as f:
+            f.write(system_prompt)
+
+        return {"message": "Knowledge and system prompt saved successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error saving knowledge: {str(e)}")
+
+
+@app.post("/api/save-selected-files")
+async def save_selected_files(data: Dict[str, List[str]]):
+    try:
+        file_paths = data.get("file_paths", [])
+        selected_files_path = os.path.join(app_root, "selected_files.txt")
+
+        # Save the file paths to a text file
+        with open(selected_files_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(file_paths))
+
+        return {"message": "Selected file paths saved successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error saving selected file paths: {str(e)}")
 
 
 if __name__ == "__main__":

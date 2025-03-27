@@ -126,6 +126,16 @@ body {
     padding: 20px;
     border: 1px solid #888;
     width: 80%;
+    max-height: 90vh; /* Fit the maximum subpage size */
+    overflow-y: auto; /* Enable scrolling if content exceeds max height */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start; /* Align subpage area to the top */
+    height: 100%; /* Ensure the modal content fills the available height */
+}
+
+.modal-content h2 {
+    margin-bottom: 5px; /* Reduce the gap below the "配置" label */
 }
 
 .close {
@@ -164,6 +174,7 @@ body {
     display: flex;
     justify-content: space-between;
     gap: 10px; /* Reduce gap between columns */
+    align-items: center; /* Ensure vertical alignment of label and button */
 }
 
 #config-modal .config-row label,
@@ -182,4 +193,318 @@ body {
     right: 10px; /* Move close button to the top-right corner */
     font-size: 20px;
     cursor: pointer;
+}
+
+/* Add styles for the tabbed interface and the new "知识库" tab */
+.tabs {
+    display: flex;
+    border-bottom: 1px solid #ebebeb;
+    margin-bottom: 20px;
+}
+
+.tab-button {
+    flex: 1;
+    padding: 10px;
+    background-color: #f7f7f7;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+    font-size: 16px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.tab-button.active {
+    background-color: #ffffff;
+    border-bottom: 2px solid #007bff;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.tab-button:hover:not(.active) {
+    background-color: #e6e6e6;
+    color: #333;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+#knowledge-tab textarea {
+    width: 100%;
+    height: 100px;
+    resize: none;
+    border: 1px solid #ebebeb;
+    border-radius: 5px;
+    padding: 10px;
+    font-size: 14px;
+    outline: none;
+}
+
+#selected-files {
+    max-height: calc(6 * 20px); /* Adjust height for 5 rows (20px per row) */
+    overflow-y: auto; /* Enable scrolling if content exceeds height */
+    border: 1px solid #ebebeb;
+    border-radius: 5px;
+    padding: 2px;
+    background-color: #f9f9f9;
+    font-size: 14px;
+    line-height: 1.5;
+    display: flex;
+    flex-direction: column;
+    gap: 4px; /* Add spacing between file items */
+    height: calc(6 * 20px + 2px); /* Fixed height for 5 rows plus border */
+    border: 1px solid #ccc; /* Add outer frame */
+    box-sizing: border-box; /* Include padding and border in height calculation */
+    overflow-y: auto; /* Enable scrolling if content exceeds fixed height */
+    margin-bottom: 20px; /* Add margin below the document table frame */
+}
+
+.file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2px;
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+.file-item span {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-item button {
+    background-color: #ff4d4f;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    padding: 2px 5px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.file-item button:hover {
+    background-color: #d9363e;
+}
+
+#clear-files-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 2px 5px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+#clear-files-button:hover {
+    background-color: #0056b3;
+}
+
+#system-prompt {
+    width: 100%;
+    height: 100px;
+    resize: none;
+    border: 1px solid #ebebeb;
+    border-radius: 5px;
+    padding: 5px;
+    font-size: 14px;
+    outline: none;
+    background-color: #f9f9f9;
+    margin-bottom: 20px; /* Add margin below the system prompt box */
+}
+
+#system-prompt[readonly] {
+    background-color: #e9ecef;
+    cursor: pointer;
+}
+
+#system-prompt:focus {
+    background-color: #ffffff;
+}
+
+#knowledge-tab .save-button {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#knowledge-tab .save-button:hover {
+    background-color: #218838;
+}
+
+#add-document-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-left: auto; /* Align the button to the right */
+    margin-top: 2px; /* Further shrink the margin above the button */
+    margin-bottom: 5px; /* Add a small margin below the button */
+}
+
+#add-document-button:hover {
+    background-color: #0056b3;
+}
+
+.modal-content .tabs {
+    margin-top: 2px; /* Reduce the top margin to shrink the spacing */
+}
+
+.file-list {
+    max-height: calc(5 * 25px); /* Fixed height for 5 rows (30px per row) */
+    overflow-y: auto;
+    border: 1px solid #ebebeb;
+    border-radius: 5px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    font-size: 14px;
+    line-height: 1.5;
+    display: table; /* Ensure table layout */
+    width: 100%;
+    table-layout: fixed; /* Fix column widths */
+    gap: 3px;
+    width: 100%; /* Make the table box area as wide as the subpage */
+    box-sizing: border-box; /* Include padding and border in width calculation */
+}
+
+.file-list table {
+    width: 100%;
+    border-collapse: collapse; /* Ensure borders are collapsed */
+    table-layout: fixed; /* Ensure fixed column widths */
+}
+
+.file-list th {
+    background-color: #f1f1f1;
+    font-weight: bold;
+    height: 20px; /* Set header row height to 20px */
+    line-height: 20px; /* Align text vertically */
+    padding: 4px; /* Adjust padding for compact size */
+}
+
+.file-list th, .file-list td {
+    text-align: left;
+    padding: 2px 4px;
+    height: 20px;
+    line-height: 20px; /* Align text vertically */
+    border-bottom: 1px solid #ddd; /* Ensure consistent horizontal divider alignment */
+    border-right: 1px solid #ddd; /* Add column dividers */
+    /*box-sizing: border-box; /* Include padding and border in element dimensions */
+}
+
+.file-list th:first-child, 
+.file-list td:first-child {
+    width: 70%; /* Occupy 70% of the table frame width */
+}
+
+.file-list th:last-child, 
+.file-list td:last-child {
+    width: auto;
+    border-right: none; /* Remove the divider to align with the table frame */
+}
+
+.file-list tbody tr:hover {
+    background-color: #f5f5f5;
+}
+
+.file-list button {
+    background-color: #ff4d4f;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    padding: 2px 8px;
+    cursor: pointer;
+    font-size: 10px;
+}
+
+.file-list button:hover {
+    background-color: #d9363e;
+}
+
+.file-list td {
+    vertical-align: middle; /* Align content vertically to the middle */
+    text-align: left; /* Align text to the left */
+    padding: 2px 2px; /* Add padding for spacing */
+}
+
+.file-list td:first-child {
+    margin: 0; /* Remove top and bottom margins */
+    padding: 2px 4px; /* Adjust padding for a compact size */
+    vertical-align: middle; /* Align text vertically to the middle */
+}
+
+.file-list td:last-child {
+    text-align: center; /* Center align buttons in the "操作" column */
+    display: flex; /* Use flexbox for alignment */
+    justify-content: left; /* Horizontally align buttons */
+    vertical-align: middle;
+    align-items: center; /* Vertically center buttons within the row */
+    gap: 8px 4px; /* Add spacing between buttons */
+    flex-wrap: nowrap; /* Prevent wrapping of buttons */
+    word-break: break-word; /* Break long content if necessary */
+}
+
+.file-list td button {
+    display: inline-flex; /* Ensure buttons are inline-flex for alignment */
+    align-items: center; /* Align button content vertically */
+    padding: 2px 8px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 10px;
+    margin: 0; /* Remove top and bottom margins */
+    justify-content: center; /* Horizontally align text */
+    position: relative; /* Enable positioning */
+    top: -10px; /* Move the button upward if negative */
+}
+
+.file-list td button:hover {
+    background-color: #d9363e; /* Adjust hover color for consistency */
+}
+
+.file-list td button:nth-child(2) {
+    background-color: #007bff; /* Modify button color */
+    color: white;
+}
+
+.file-list td button:nth-child(2):hover {
+    background-color: #0056b3; /* Modify hover color */
+}
+
+.file-list tbody tr.empty-row td {
+    height: 20px; /* Adjust height for empty rows */
+    text-align: center; /* Center align placeholder content */
+    color: #aaa; /* Placeholder text color */
+}
+
+.save-button {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.save-button:hover {
+    background-color: #218838;
 }

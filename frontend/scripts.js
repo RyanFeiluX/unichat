@@ -169,3 +169,181 @@ function saveConfig() {
     .catch(error => console.error('Error saving config:', error));
 }
 
+function switchTab(tabId) {
+    // Remove active class from all tabs and buttons
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
+
+    // Add active class to the selected tab and button
+    document.getElementById(tabId).classList.add('active');
+    document.querySelector(`.tab-button[onclick="switchTab('${tabId}')"]`).classList.add('active');
+}
+
+let accumulatedFilePaths = []; // Accumulate selected file paths
+
+function triggerFileInput() {
+    document.getElementById('document-input').click();
+}
+
+function addDocuments() {
+    const input = document.getElementById('document-input');
+    const tableBody = document.querySelector('#selected-files tbody');
+    const emptyRow = tableBody.querySelector('.empty-row');
+
+    if (emptyRow) {
+        emptyRow.remove(); // Remove placeholder row if it exists
+    }
+
+    Array.from(input.files).forEach(file => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${file.name}</td>
+            <td>
+                <button onclick="removeFile(this)">删除</button>
+                <button onclick="modifyFile(this)">修改</button>
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
+
+    input.value = ''; // Clear the input
+}
+
+function removeFile(button) {
+    const row = button.closest('tr');
+    const tableBody = row.parentElement;
+    row.remove();
+
+    if (!tableBody.querySelector('tr')) {
+        const emptyRow = document.createElement('tr');
+        emptyRow.className = 'empty-row';
+        emptyRow.innerHTML = '<td colspan="2">暂无文件</td>';
+        tableBody.appendChild(emptyRow); // Restore placeholder row if table is empty
+    }
+}
+
+function clearSelectedFiles() {
+    accumulatedFilePaths = []; // Clear the accumulated file paths
+    const fileList = document.getElementById('selected-files');
+    fileList.innerHTML = ''; // Clear the file list display
+}
+
+function saveSelectedFiles() {
+    fetch('http://localhost:8000/api/save-selected-files', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ file_paths: accumulatedFilePaths })
+    })
+    .then(response => {
+        if (response.ok) {
+            alert('选中文档路径已保存');
+        } else {
+            alert('保存选中文档路径时出错');
+        }
+    })
+    .catch(error => console.error('Error saving selected file paths:', error));
+}
+
+function toggleEditMode() {
+    const systemPrompt = document.getElementById('system-prompt');
+    if (systemPrompt.readOnly) {
+        systemPrompt.readOnly = false;
+        systemPrompt.focus();
+    } else {
+        systemPrompt.readOnly = true;
+        saveSystemPrompt(systemPrompt.value);
+    }
+}
+
+function saveSystemPrompt(promptText) {
+    fetch('http://localhost:8000/api/save-knowledge', {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ system_prompt: promptText })
+    })
+    .then(response => {
+        if (response.ok) {
+            alert('系统提示词已保存');
+        } else {
+            alert('保存系统提示词时出错');
+        }
+    })
+    .catch(error => console.error('Error saving system prompt:', error));
+}
+
+function saveKnowledge() {
+    const knowledgeText = document.getElementById('knowledge-text').value;
+    const systemPrompt = document.getElementById('system-prompt').value;
+
+    fetch('http://localhost:8000/api/save-knowledge', {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ knowledge: knowledgeText, system_prompt: systemPrompt })
+    })
+    .then(response => {
+        if (response.ok) {
+            alert('知识库保存成功');
+        } else {
+            alert('知识库保存失败');
+        }
+    })
+    .catch(error => console.error('Error saving knowledge:', error));
+}
+
+document.addEventListener('DOMContentLoaded', initializeConfig);
+
+function triggerFileInput() {
+    const input = document.getElementById('document-input');
+    input.click(); // Trigger the file input dialog
+}
+
+function addDocuments() {
+    const input = document.getElementById('document-input');
+    const tableBody = document.querySelector('#selected-files tbody');
+    const emptyRow = tableBody.querySelector('.empty-row');
+
+    if (emptyRow) {
+        emptyRow.remove(); // Remove placeholder row if it exists
+    }
+
+    Array.from(input.files).forEach(file => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${file.name}</td>
+            <td>
+                <button onclick="removeFile(this)">删除</button>
+                <button onclick="modifyFile(this)">修改</button>
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
+
+    input.value = ''; // Clear the input
+}
+
+function removeFile(button) {
+    const row = button.closest('tr');
+    const tableBody = row.parentElement;
+    row.remove();
+
+    if (!tableBody.querySelector('tr')) {
+        const emptyRow = document.createElement('tr');
+        emptyRow.className = 'empty-row';
+        emptyRow.innerHTML = '<td colspan="2">暂无文件</td>';
+        tableBody.appendChild(emptyRow); // Restore placeholder row if table is empty
+    }
+}
+
+function saveKnowledgeBase() {
+    const fileList = Array.from(document.querySelectorAll('#selected-files tbody tr td:first-child')).map(td => td.textContent);
+    const systemPrompt = document.getElementById('system-prompt').value;
+    console.log('Saving knowledge base:', { fileList, systemPrompt });
+    // Add logic to save the data (e.g., send to server)
+}
+
