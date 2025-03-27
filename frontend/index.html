@@ -11,31 +11,31 @@
         <div class="header">
             <div class="header-title">对话框</div>
         </div>
-        <button id="config-button" onclick="openConfigModal()" class="config-button">
+        <button id="config-button" class="config-button">
             <img src="../resources/gear-icon.png" alt="配置" class="gear-icon">
         </button>
         <div id="chat-box" class="chat-box">
         </div>
         <div class="input-container">
-            <input type="text" id="user-input" placeholder="请输入您的问题..." onkeydown="keyDown()" autofocus>
-            <button id="send-button" onclick="sendMessage()">发送</button>
+            <input type="text" id="user-input" placeholder="请输入您的问题..." autofocus>
+            <button id="send-button">发送</button>
         </div>
     </div>
 
     <!-- Configuration Modal -->
     <div id="config-modal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="closeConfigModal()">&times;</span> <!-- Close button moved to top-right -->
+            <span class="close">&times;</span>
             <h2>配置</h2>
             <div class="tabs">
-                <button class="tab-button active" onclick="switchTab('model-tab')">模型</button>
-                <button class="tab-button" onclick="switchTab('knowledge-tab')">知识库</button>
+                <button class="tab-button active" data-tab="model-tab">模型</button>
+                <button class="tab-button" data-tab="knowledge-tab">知识库</button>
             </div>
             <div id="model-tab" class="tab-content active">
                 <div class="config-row">
                     <div>
                         <label for="llm-provider">LLM供应商:</label>
-                        <select id="llm-provider" onchange="updateLlmModels(); updateProviderDescription();"></select>
+                        <select id="llm-provider"></select>
                     </div>
                     <div>
                         <label for="llm-model">LLM模型:</label>
@@ -48,23 +48,22 @@
                 <div class="config-row">
                     <div>
                         <label for="embedding-provider">Embedding供应商:</label>
-                        <select id="embedding-provider" onchange="updateEmbeddingModels()"></select>
+                        <select id="embedding-provider"></select>
                     </div>
                     <div>
                         <label for="embedding-model">Embedding模型:</label>
                         <select id="embedding-model"></select>
                     </div>
                 </div>
-                <button class="save-button" onclick="saveConfig()">保存</button>
+                <button class="save-button">保存</button>
             </div>
             <div id="knowledge-tab" class="tab-content">
-                <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div class="file-container">
                     <div id="selected-files" class="file-list">
                         <table>
                             <thead>
                                 <tr>
                                     <th>文档</th>
-                                    <th>操作</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -72,16 +71,40 @@
                             </tbody>
                         </table>
                     </div>
-                    <button id="add-document-button" onclick="triggerFileInput()">添加</button>
-                    <input type="file" id="document-input" multiple accept=".txt,.docx,.pdf,.csv,.md" style="display: none;" onchange="addDocuments()">
+                    <div id="button-box" class="button-box">
+                        <button id="add-document-button">添加</button>
+                        <button id="delete-document-button" class="delete-button" disabled>删除</button>
+                    </div>
+                    <input type="file" id="document-input" multiple accept=".txt,.docx,.pdf,.csv,.md" class="hidden-input">
                 </div>
-                <label for="system-prompt" style="display: block; margin: 10px 0;">系统提示词:</label>
+                <label for="system-prompt" class="system-prompt-label">系统提示词:</label>
                 <textarea id="system-prompt" placeholder="请输入系统提示词..."></textarea>
-                <button class="save-button" onclick="saveKnowledgeBase()">保存</button>
+                <button id="save-knowledge-button" class="save-button">保存</button>
             </div>
         </div>
     </div>
 
     <script src="scripts.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('config-button').addEventListener('click', openConfigModal);
+            document.getElementById('send-button').addEventListener('click', sendMessage);
+            document.getElementById('user-input').addEventListener('keydown', keyDown);
+            document.querySelector('.close').addEventListener('click', closeConfigModal);
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', () => switchTab(button.dataset.tab));
+            });
+            document.getElementById('llm-provider').addEventListener('change', () => {
+                updateLlmModels();
+                updateProviderDescription();
+            });
+            document.getElementById('embedding-provider').addEventListener('change', updateEmbeddingModels);
+            document.getElementById('add-document-button').addEventListener('click', triggerFileInput);
+            document.getElementById('delete-document-button').addEventListener('click', deleteSelectedFile);
+            document.getElementById('document-input').addEventListener('change', addDocuments);
+            document.getElementById('save-knowledge-button').addEventListener('click', saveKnowledgeBase);
+            document.querySelector('#model-tab .save-button').addEventListener('click', saveConfig);
+        });
+    </script>
 </body>
 </html>

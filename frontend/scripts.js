@@ -177,7 +177,7 @@ function switchTab(tabId) {
 
     // Add active class to the selected tab and button
     document.getElementById(tabId).classList.add('active');
-    document.querySelector(`.tab-button[onclick="switchTab('${tabId}')"]`).classList.add('active');
+    document.querySelector(`.tab-button[data-tab="${tabId}"]`).classList.add('active');
 }
 
 let accumulatedFilePaths = []; // Accumulate selected file paths
@@ -197,29 +197,38 @@ function addDocuments() {
 
     Array.from(input.files).forEach(file => {
         const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${file.name}</td>
-            <td>
-                <button onclick="removeFile(this)">删除</button>
-                <button onclick="modifyFile(this)">修改</button>
-            </td>
-        `;
+        row.innerHTML = `<td>${file.name}</td>`;
+        row.onclick = () => toggleRowSelection(row); // Add click event for selection
         tableBody.appendChild(row);
     });
 
     input.value = ''; // Clear the input
 }
 
-function removeFile(button) {
-    const row = button.closest('tr');
-    const tableBody = row.parentElement;
-    row.remove();
+function toggleRowSelection(row) {
+    const selectedRow = document.querySelector('#selected-files tbody tr.selected');
+    if (selectedRow && selectedRow !== row) {
+        selectedRow.classList.remove('selected'); // Unselect previously selected row
+    }
+    row.classList.toggle('selected'); // Toggle selection for the clicked row
 
-    if (!tableBody.querySelector('tr')) {
-        const emptyRow = document.createElement('tr');
-        emptyRow.className = 'empty-row';
-        emptyRow.innerHTML = '<td colspan="2">暂无文件</td>';
-        tableBody.appendChild(emptyRow); // Restore placeholder row if table is empty
+    updateDeleteButtonState(); // Update the delete button state
+}
+
+function updateDeleteButtonState() {
+    const deleteButton = document.getElementById('delete-document-button');
+    const selectedRow = document.querySelector('#selected-files tbody tr.selected');
+    deleteButton.disabled = !selectedRow; // Disable if no row is selected
+}
+
+function deleteSelectedRow() {
+    const selectedRow = document.querySelector('#selected-files tbody tr.selected');
+    if (selectedRow) {
+        selectedRow.remove(); // Remove the selected row
+        alert('选中的文档已删除');
+        updateDeleteButtonState(); // Update the delete button state
+    } else {
+        alert('请先选择一个文档');
     }
 }
 
@@ -297,7 +306,29 @@ function saveKnowledge() {
     .catch(error => console.error('Error saving knowledge:', error));
 }
 
-document.addEventListener('DOMContentLoaded', initializeConfig);
+document.addEventListener('DOMContentLoaded', () => {
+    initializeConfig(); // Ensure configuration is initialized on page load
+    const chatBox = document.getElementById('chat-box');
+    chatBox.scrollTop = chatBox.scrollHeight; // Scroll chat box to the bottom
+});
+
+function deleteSelectedFile() {
+    const selectedRow = document.querySelector('#selected-files tbody tr.selected');
+    if (selectedRow) {
+        selectedRow.remove(); // Remove the selected row
+        updateDeleteButtonState(); // Update the delete button state
+    } else {
+        alert('请先选择一个文档');
+    }
+}
+
+function saveKnowledgeBase() {
+    const fileList = Array.from(document.querySelectorAll('#selected-files tbody tr td:first-child')).map(td => td.textContent);
+    const systemPrompt = document.getElementById('system-prompt').value;
+    console.log('Saving knowledge base:', { fileList, systemPrompt });
+    alert('知识库已保存');
+    // Add logic to save the data (e.g., send to server)
+}
 
 function triggerFileInput() {
     const input = document.getElementById('document-input');
@@ -315,29 +346,38 @@ function addDocuments() {
 
     Array.from(input.files).forEach(file => {
         const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${file.name}</td>
-            <td>
-                <button onclick="removeFile(this)">删除</button>
-                <button onclick="modifyFile(this)">修改</button>
-            </td>
-        `;
+        row.innerHTML = `<td>${file.name}</td>`;
+        row.onclick = () => toggleRowSelection(row); // Add click event for selection
         tableBody.appendChild(row);
     });
 
     input.value = ''; // Clear the input
 }
 
-function removeFile(button) {
-    const row = button.closest('tr');
-    const tableBody = row.parentElement;
-    row.remove();
+function toggleRowSelection(row) {
+    const selectedRow = document.querySelector('#selected-files tbody tr.selected');
+    if (selectedRow && selectedRow !== row) {
+        selectedRow.classList.remove('selected'); // Unselect previously selected row
+    }
+    row.classList.toggle('selected'); // Toggle selection for the clicked row
 
-    if (!tableBody.querySelector('tr')) {
-        const emptyRow = document.createElement('tr');
-        emptyRow.className = 'empty-row';
-        emptyRow.innerHTML = '<td colspan="2">暂无文件</td>';
-        tableBody.appendChild(emptyRow); // Restore placeholder row if table is empty
+    updateDeleteButtonState(); // Update the delete button state
+}
+
+function updateDeleteButtonState() {
+    const deleteButton = document.getElementById('delete-document-button');
+    const selectedRow = document.querySelector('#selected-files tbody tr.selected');
+    deleteButton.disabled = !selectedRow; // Disable if no row is selected
+}
+
+function deleteSelectedFile() {
+    const selectedRow = document.querySelector('#selected-files tbody tr.selected');
+    if (selectedRow) {
+        selectedRow.remove(); // Remove the selected row
+        // alert('选中的文档已删除');
+        updateDeleteButtonState(); // Update the delete button state
+    } else {
+        alert('请先选择一个文档');
     }
 }
 
@@ -361,5 +401,11 @@ function updateProviderDescription() {
 
 function modifyFile(button) {
     alert('修改功能尚未实现'); // Placeholder for modify functionality
+}
+
+function deleteSelectedFiles() {
+    const tableBody = document.querySelector('#selected-files tbody');
+    tableBody.innerHTML = ''; // Clear all rows in the table
+    alert('所有文档已删除');
 }
 

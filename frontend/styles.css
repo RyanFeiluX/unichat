@@ -142,16 +142,16 @@ body {
     margin: 15% auto; /* Restore original centering */
     padding: 20px;
     border: 1px solid #888;
-    width: 80%;
+    width: 80%; /* Restore original width */
     max-height: 90vh; /* Ensure it fits within the viewport */
     overflow: hidden; /* Remove vertical scrollbar */
     display: flex;
     flex-direction: column;
     justify-content: flex-start; /* Align subpage area to the top */
-    height: 95%; /* Ensure the modal content fills the available height */
-    top: 50%; /* Center vertically */
-    transform: translateY(-50%); /* Adjust for vertical centering */
-    position: fixed; /* Keep the modal fixed in the center */
+    position: relative; /* Restore relative positioning */
+    top: auto; /* Remove fixed centering */
+    left: auto; /* Remove fixed centering */
+    transform: none; /* Remove centering transformation */
 }
 
 .modal-content h2 {
@@ -185,16 +185,16 @@ body {
 #config-modal .modal-content {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 5px;
     width: 440px;
     position: relative; /* For positioning the close button */
-    max-height: 75vh; /* Reduce the height to fit better */
+    max-height: 65vh; /* Reduce the height to fit better */
 }
 
 #config-modal .config-row {
     display: flex;
     justify-content: space-between;
-    gap: 10px; /* Reduce gap between columns */
+    gap: 5px; /* Reduce gap between columns */
     align-items: center; /* Vertically align label and button */
     margin-bottom: 2px; /* Reduce spacing below the label */
 }
@@ -217,15 +217,24 @@ body {
     cursor: pointer;
 }
 
-#config-modal select, 
+#config-modal select,
 #config-modal button {
     max-width: 95%; /* Adjust components to fit the new width */
+}
+
+#config-modal .tab-content {
+    min-height: 300px; /* Set a minimum height to match the larger subpage */
+}
+
+#config-modal .modal-content h2 {
+    margin-top: 5px; /* Reduce the top margin to shrink the spacing */
 }
 
 .tabs {
     display: flex;
     border-bottom: 1px solid #ebebeb;
-    margin-bottom: 20px;
+    margin-top: 5px; /* Reduce the top margin to shrink the whitespace */
+    margin-bottom: 10px 20px;
 }
 
 .tab-button {
@@ -277,7 +286,7 @@ body {
     border-radius: 5px;
     padding: 2px;
     background-color: #f9f9f9;
-    font-size: 14px;
+    font-size: 12px;
     line-height: 1.5;
     display: flex;
     flex-direction: column;
@@ -286,8 +295,12 @@ body {
     border: 1px solid #ccc; /* Add outer frame */
     box-sizing: border-box; /* Include padding and border in height calculation */
     overflow-y: auto; /* Enable scrolling if content exceeds fixed height */
-    margin-bottom: 20px; /* Add margin below the document table frame */
-    }
+    margin-bottom: 10px; /* Add margin below the document table frame */
+}
+
+#selected-files td {
+    text-align: left; /* Adjust alignment for single-column table */
+}
 
 .file-item {
     display: flex;
@@ -327,8 +340,7 @@ body {
     border-radius: 5px;
     padding: 2px 5px;
     cursor: pointer;
-    font-size: 14px;
-    margin-top: 10px;
+    font-size: 12px;
 }
 
 #clear-files-button:hover {
@@ -336,9 +348,14 @@ body {
     transition: background-color 0.3s ease;
 }
 
+#knowledge-tab label[for="system-prompt"] {
+    margin-top: 5px; /* Reduce the top margin to shrink the whitespace */
+    margin-bottom: 1px; /* Keep the reduced margin below the label */
+}
+
 #system-prompt {
     width: 100%;
-    height: 100px;
+    height: 20px; /* Reduced height from 25px */
     resize: none;
     border: 1px solid #ebebeb;
     border-radius: 5px;
@@ -349,7 +366,7 @@ body {
     margin-bottom: 10px; /* Reduce the margin below the input box */
     max-width: 100%; /* Ensure it doesn't exceed the subpage width */
     box-sizing: border-box; /* Include padding and border in width calculation */
-    /*margin-top: 5px; /* Reduce the margin above the input box */
+    margin-top: 1px; /* Reduce the margin above the input box */
 }
 
 #system-prompt[readonly] {
@@ -379,25 +396,42 @@ body {
 }
 
 #add-document-button {
-    margin-left: 5px; /* Add spacing between the table and the button */
-    padding: 3px 5px;
-    background-color: #007bff;
+    margin-top: 0; /* Remove unnecessary top margin */
+    margin-left: 0; /* Align button closer to the table */
+    padding: 2px 2px; /* Adjust padding for compact size */
+}
+
+#add-document-button:hover {
+    background-color: #0056b3;
+}
+
+#delete-document-button {
+    padding: 2px 2px;
+    background-color: #dc3545;
     color: white;
     border: none;
     border-radius: 3px;
     cursor: pointer;
     font-size: 12px;
-    display: inline-flex; /* Ensure horizontal alignment */
-    align-items: center; /* Vertically center the text */
-    justify-content: center; /* Horizontally center the text */
-    text-align: center; /* Ensure text alignment */
-    /*writing-mode: horizontal-tb; /* Ensure horizontal text direction */
-    white-space: nowrap; /* Prevent text wrapping */
-    align-self: flex-start; /* Align the button with the top of the table frame */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    white-space: nowrap;
 }
 
-#add-document-button:hover {
-    background-color: #0056b3;
+#delete-document-button:hover {
+    background-color: #c82333;
+}
+
+#delete-document-button:disabled {
+    background-color: #6c757d; /* Gray color for disabled state */
+    color: #e9ecef; /* Light gray text for disabled state */
+    cursor: not-allowed; /* Change cursor to indicate disabled state */
+}
+
+#delete-document-button:disabled:hover {
+    background-color: #6c757d; /* No hover effect when disabled */
 }
 
 .modal-content .tabs {
@@ -405,13 +439,13 @@ body {
 }
 
 .file-list {
-    max-height: calc(5 * 25px); /* Fixed height for 5 rows (30px per row) */
+    max-height: calc(6 * 20px); /* Fixed height for 6 rows (20px per row) */
     overflow-y: auto;
-    border: 1px solid #ebebeb;
+    /*border: 1px solid #dbd9d9; /* Add border around the table */
     border-radius: 5px;
-    padding: 10px;
+    padding: 3px; /* Adjust padding for spacing */
     background-color: #f9f9f9;
-    font-size: 14px;
+    font-size: 12px;
     line-height: 1.5;
     display: table; /* Ensure table layout */
     width: 100%;
@@ -445,13 +479,11 @@ body {
     /*box-sizing: border-box; /* Include padding and border in element dimensions */
 }
 
-.file-list th:first-child, 
-.file-list td:first-child {
-    width: 70%; /* Occupy 70% of the table frame width */
+.file-list th:first-child, .file-list td:first-child {
+    width: 100%; /* Occupy 70% of the table frame width */
 }
 
-.file-list th:last-child, 
-.file-list td:last-child {
+.file-list th:last-child, .file-list td:last-child {
     width: auto;
     border-right: none; /* Remove the divider to align with the table frame */
 }
@@ -465,7 +497,7 @@ body {
     color: white;
     border: none;
     border-radius: 3px;
-    padding: 2px 8px;
+    padding: 2px 2px;
     cursor: pointer;
     font-size: 10px;
 }
@@ -500,7 +532,7 @@ body {
 .file-list td button {
     display: inline-flex; /* Ensure buttons are inline-flex for alignment */
     align-items: center; /* Align button content vertically */
-    padding: 2px 8px;
+    padding: 2px 4px;
     border: none;
     border-radius: 3px;
     cursor: pointer;
@@ -511,6 +543,12 @@ body {
     top: -10px; /* Move the button upward if negative */
 }
 
+.file-list td button:hover {
+    background-color: #d9363e; /* Adjust hover color for consistency */
+}
+
+.file-list td button:nth-child(2) {
+    background-color: #007bff; /* Modify button color */
 .file-list td button:hover {
     background-color: #d9363e; /* Adjust hover color for consistency */
 }
@@ -530,6 +568,20 @@ body {
     color: #aaa; /* Placeholder text color */
 }
 
+.file-list tbody tr {
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.file-list tbody tr.selected {
+    background-color: #0c08f1; /* Highlight color for selected row */
+    color: #f6de07;
+}
+
+.file-list tbody tr:hover {
+    background-color: #07f0e9; /* Hover effect for rows */
+}
+
 .save-button {
     background-color: #28a745;
     color: white;
@@ -547,7 +599,7 @@ body {
 #knowledge-tab .config-row {
     display: flex;
     justify-content: space-between;
-    gap: 10px; /* Reduce gap between columns */
+    gap: 5px; /* Reduce gap between columns */
     align-items: center; /* Vertically align label and button along their centerlines */
     margin-bottom: 2px; /* Reduce spacing below the label */
     margin-top: 2px; /* Reduce spacing above the label */
@@ -588,4 +640,111 @@ body {
     background-color: #f9f9f9;
     box-sizing: border-box;
     overflow: hidden;
+    margin-bottom: 20px;
+}
+
+#button-box {
+    display: flex;
+    /*border: solid 1px #ebebeb; /* Add border around button box */
+    flex-direction: column; /* Align buttons vertically */
+    align-items: stretch;
+    gap: 2px 2px; /* Add spacing between buttons */
+    margin: 0px; /* Minimize the margin between button box and table */
+    margin-left: 5px; /* Adjust spacing between button box and document table frame */
+    /*gap: 5px; /* Set spacing between buttons to 10px */
+}
+
+#add-document-button,
+#delete-document-button {
+    padding: 3px 5px;
+    font-size: 12px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    text-align: center;
+    white-space: nowrap;
+    margin: 0px 0px;
+}
+
+#add-document-button {
+    background-color: #007bff;
+    color: white;
+}
+
+#add-document-button:hover {
+    background-color: #0056b3;
+}
+
+#delete-document-button {
+    background-color: #dc3545;
+    color: white;
+}
+
+#delete-document-button:hover {
+    background-color: #c82333;
+}
+
+#delete-document-button:disabled {
+    background-color: #6c757d; /* Gray color for disabled state */
+    color: #e9ecef; /* Light gray text for disabled state */
+    cursor: not-allowed; /* Change cursor to indicate disabled state */
+}
+
+#delete-document-button:disabled:hover {
+    background-color: #6c757d; /* No hover effect when disabled */
+}
+
+#selected-files table {
+    width: 100%; /* Ensure the table occupies 100% of the frame width */
+    border-collapse: collapse; /* Ensure borders are collapsed */
+    table-layout: fixed; /* Ensure fixed column widths */
+}
+
+.file-container {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.button-box {
+    display: flex;
+    flex-direction: column;
+}
+
+.file-delete-button {
+    margin-top: 5px; /* Adjusted for better visibility */
+}
+
+.hidden-input {
+    display: none;
+}
+
+.system-prompt-label {
+    display: block;
+    margin: 5px 0;
+}
+
+/* Ensure modal is hidden by default */
+#config-modal {
+    display: none;
+}
+
+/* Ensure modal content is centered */
+.modal-content {
+    margin: 10% auto;
+}
+
+/* Add styles for active tab buttons */
+.tab-button.active {
+    background-color: #ffffff;
+    border-bottom: 2px solid #007bff;
+    font-weight: bold;
+    color: #007bff;
+}
+
+/* Add styles for disabled delete button */
+#delete-document-button:disabled {
+    background-color: #6c757d;
+    color: #e9ecef;
+    cursor: not-allowed;
 }
