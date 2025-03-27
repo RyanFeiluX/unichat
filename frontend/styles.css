@@ -40,7 +40,24 @@ body {
 }
 
 .header-actions {
-    /* 放置图标或按钮 */
+    display: flex;
+    justify-content: flex-end; /* Align the button to the far-right */
+    align-items: center;
+}
+
+.config-button {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.gear-icon {
+    width: 20px;
+    height: 20px;
 }
 
 /* 聊天框 */
@@ -87,7 +104,7 @@ body {
     padding: 15px;
     border: 1px solid #ebebeb;
     border-radius: 20px;
-    font-size: 16px;
+    font-size: 14px;
     outline: none;
 }
 
@@ -99,7 +116,7 @@ body {
     border: none;
     border-radius: 20px;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 14px;
     outline: none;
 }
 
@@ -122,16 +139,19 @@ body {
 
 .modal-content {
     background-color: #fefefe;
-    margin: 15% auto;
+    margin: 15% auto; /* Restore original centering */
     padding: 20px;
     border: 1px solid #888;
     width: 80%;
-    max-height: 90vh; /* Fit the maximum subpage size */
-    overflow-y: auto; /* Enable scrolling if content exceeds max height */
+    max-height: 90vh; /* Ensure it fits within the viewport */
+    overflow: hidden; /* Remove vertical scrollbar */
     display: flex;
     flex-direction: column;
     justify-content: flex-start; /* Align subpage area to the top */
-    height: 100%; /* Ensure the modal content fills the available height */
+    height: 95%; /* Ensure the modal content fills the available height */
+    top: 50%; /* Center vertically */
+    transform: translateY(-50%); /* Adjust for vertical centering */
+    position: fixed; /* Keep the modal fixed in the center */
 }
 
 .modal-content h2 {
@@ -166,15 +186,17 @@ body {
     display: flex;
     flex-direction: column;
     gap: 20px;
-    width: 400px; /* Adjust modal width to fit configuration items */
+    width: 440px;
     position: relative; /* For positioning the close button */
+    max-height: 75vh; /* Reduce the height to fit better */
 }
 
 #config-modal .config-row {
     display: flex;
     justify-content: space-between;
     gap: 10px; /* Reduce gap between columns */
-    align-items: center; /* Ensure vertical alignment of label and button */
+    align-items: center; /* Vertically align label and button */
+    margin-bottom: 2px; /* Reduce spacing below the label */
 }
 
 #config-modal .config-row label,
@@ -195,7 +217,11 @@ body {
     cursor: pointer;
 }
 
-/* Add styles for the tabbed interface and the new "知识库" tab */
+#config-modal select, 
+#config-modal button {
+    max-width: 95%; /* Adjust components to fit the new width */
+}
+
 .tabs {
     display: flex;
     border-bottom: 1px solid #ebebeb;
@@ -204,12 +230,12 @@ body {
 
 .tab-button {
     flex: 1;
-    padding: 10px;
+    padding: 5px;
     background-color: #f7f7f7;
     border: none;
     cursor: pointer;
     text-align: center;
-    font-size: 16px;
+    font-size: 14px;
     transition: background-color 0.3s, color 0.3s;
 }
 
@@ -261,7 +287,7 @@ body {
     box-sizing: border-box; /* Include padding and border in height calculation */
     overflow-y: auto; /* Enable scrolling if content exceeds fixed height */
     margin-bottom: 20px; /* Add margin below the document table frame */
-}
+    }
 
 .file-item {
     display: flex;
@@ -307,6 +333,7 @@ body {
 
 #clear-files-button:hover {
     background-color: #0056b3;
+    transition: background-color 0.3s ease;
 }
 
 #system-prompt {
@@ -316,10 +343,13 @@ body {
     border: 1px solid #ebebeb;
     border-radius: 5px;
     padding: 5px;
-    font-size: 14px;
+    font-size: 12px;
     outline: none;
     background-color: #f9f9f9;
-    margin-bottom: 20px; /* Add margin below the system prompt box */
+    margin-bottom: 10px; /* Reduce the margin below the input box */
+    max-width: 100%; /* Ensure it doesn't exceed the subpage width */
+    box-sizing: border-box; /* Include padding and border in width calculation */
+    /*margin-top: 5px; /* Reduce the margin above the input box */
 }
 
 #system-prompt[readonly] {
@@ -349,16 +379,21 @@ body {
 }
 
 #add-document-button {
+    margin-left: 5px; /* Add spacing between the table and the button */
+    padding: 3px 5px;
     background-color: #007bff;
     color: white;
     border: none;
-    border-radius: 5px;
-    padding: 5px 10px;
+    border-radius: 3px;
     cursor: pointer;
-    font-size: 14px;
-    margin-left: auto; /* Align the button to the right */
-    margin-top: 2px; /* Further shrink the margin above the button */
-    margin-bottom: 5px; /* Add a small margin below the button */
+    font-size: 12px;
+    display: inline-flex; /* Ensure horizontal alignment */
+    align-items: center; /* Vertically center the text */
+    justify-content: center; /* Horizontally center the text */
+    text-align: center; /* Ensure text alignment */
+    /*writing-mode: horizontal-tb; /* Ensure horizontal text direction */
+    white-space: nowrap; /* Prevent text wrapping */
+    align-self: flex-start; /* Align the button with the top of the table frame */
 }
 
 #add-document-button:hover {
@@ -507,4 +542,50 @@ body {
 
 .save-button:hover {
     background-color: #218838;
+}
+
+#knowledge-tab .config-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px; /* Reduce gap between columns */
+    align-items: center; /* Vertically align label and button along their centerlines */
+    margin-bottom: 2px; /* Reduce spacing below the label */
+    margin-top: 2px; /* Reduce spacing above the label */
+}
+
+#model-tab .save-button {
+    position: absolute;
+    bottom: 20px;
+    right: 20px; /* Align with the knowledge base save button */
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#model-tab .save-button:hover {
+    background-color: #218838;
+}
+
+.provider-description {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #555;
+}
+
+#provider-description-box {
+    width: 100%;
+    height: 60px;
+    resize: none;
+    border: 1px solid #ebebeb;
+    border-radius: 5px;
+    padding: 5px;
+    font-size: 12px;
+    color: #555;
+    background-color: #f9f9f9;
+    box-sizing: border-box;
+    overflow: hidden;
 }

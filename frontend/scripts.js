@@ -123,6 +123,7 @@ function updateLlmModels() {
     const selectedProvider = document.getElementById('llm-provider').value;
     const models = llmModelsData[selectedProvider] || [];
     populateSelect('llm-model', models);
+    updateProviderDescription(); // Update provider description when LLM provider changes
 }
 
 function updateEmbeddingModels() {
@@ -345,5 +346,20 @@ function saveKnowledgeBase() {
     const systemPrompt = document.getElementById('system-prompt').value;
     console.log('Saving knowledge base:', { fileList, systemPrompt });
     // Add logic to save the data (e.g., send to server)
+}
+
+function updateProviderDescription() {
+    const selectedProvider = document.getElementById('llm-provider').value;
+    const descriptions = {
+        'ProviderA': 'ProviderA 提供高性能的语言模型，适用于多种场景。',
+        'ProviderB': 'ProviderB 专注于低延迟和高效率的模型服务。',
+        'ProviderC': 'ProviderC 提供丰富的模型选择，支持多语言处理。'
+    };
+    const descriptionBox = document.getElementById('provider-description-box');
+    descriptionBox.value = descriptions[selectedProvider] || '暂无相关介绍。';
+}
+
+function modifyFile(button) {
+    alert('修改功能尚未实现'); // Placeholder for modify functionality
 }
 
