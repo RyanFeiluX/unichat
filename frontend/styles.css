@@ -116,6 +116,7 @@ body {
     border-radius: 20px;
     font-size: 14px;
     outline: none;
+    border: none; /* Remove visible borders */
 }
 
 /* Input container button hover */
@@ -526,6 +527,12 @@ body {
 
 .save-button:hover {
     background-color: #218838;
+}
+
+.save-button:disabled {
+    background-color: #6c757d; /* Gray color for disabled state */
+    color: #e9ecef; /* Light gray text for disabled state */
+    cursor: not-allowed; /* Change cursor to indicate disabled state */
 }
 
 #knowledge-tab .config-row {

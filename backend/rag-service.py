@@ -1,6 +1,6 @@
 import os, sys, re
 import uvicorn
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 from dotenv import load_dotenv, find_dotenv
 import toml
@@ -42,15 +42,14 @@ else:
 print(f'APP ROOT: {app_root}')
 
 # Load env variables from local .env file. Several parameters are there, including API_KEY.
-os.chdir(os.path.dirname(__file__))
 dotenv_path = find_dotenv(filename='.env', raise_error_if_not_found=False)
 if dotenv_path:
     print(f'dotenv={dotenv_path}')
     _ = load_dotenv(dotenv_path=os.path.abspath(dotenv_path))
 
 # Load config parameters
-scfg = toml.load(os.path.expanduser("sta_config.toml"))
-dcfg = toml.load(os.path.expanduser("dyn_config.toml"))
+scfg = toml.load(os.path.join(app_root, "backend", "sta_config.toml"))
+dcfg = toml.load(os.path.join(app_root, "backend", "dyn_config.toml"))
 
 # llm
 llm_provider = dcfg['Deployment']['LLM_PROVIDER']  # os.getenv("LLM_PROVIDER")
@@ -233,6 +232,8 @@ msghist_chain = RunnableWithMessageHistory(
     output_messages_key="answer",
 )
 
+LOCAL_DOCS_DIR = os.path.join(app_root, "local_docs")
+
 # Create FastAPI application for API service
 app = FastAPI()
 app.mount('/static', StaticFiles(directory=os.path.join(app_root, 'frontend')), 'static')
@@ -331,10 +332,10 @@ class ConfigSet(BaseModel):
     model_support: List[Dict[str, Union[str, List[str]]]]
 
 
-# API for http://127.0.0.1:8000/api/config
-@app.get("/api/config", response_model=ConfigSet)
+# API for http://127.0.0.1:8000/api/models
+@app.get("/api/models", response_model=ConfigSet)  # Updated endpoint
 async def fetch_config():
-    print(f'GET: /api/config')
+    print(f'GET: /api/models')
     options: list = []
     for p in scfg['Providers'].keys():
         options.append({'provider': p,
@@ -344,17 +345,17 @@ async def fetch_config():
     return ConfigSet(model_support=options)
 
 
-# API for http://127.0.0.1:8000/api/config
-@app.put("/api/config")
+# API for http://127.0.0.1:8000/api/models
+@app.put("/api/models")  # Updated endpoint
 async def save_config(options: ModelSelect):
-    print(f'PUT: /api/config')
+    print(f'PUT: /api/models')
     dcfg['Deployment']['LLM_PROVIDER'] = options.llm_provider
     dcfg['Deployment']['LLM_MODEL'] = options.llm_model
     dcfg['Deployment']['EMB_PROVIDER'] = options.emb_provider
     dcfg['Deployment']['EMB_MODEL'] = options.emb_model
 
     # Load the original TOML file with tomlkit to preserve structure and comments
-    with open(os.path.expanduser("dyn_config.toml"), "r", encoding="utf-8") as f:
+    with open(os.path.join(app_root, "backend", "dyn_config.toml"), "r", encoding="utf-8") as f:
         dyn_config = tomlkit.parse(f.read())
 
     # Update the TOML structure with new values
@@ -364,7 +365,7 @@ async def save_config(options: ModelSelect):
     dyn_config['Deployment']['EMB_MODEL'] = options.emb_model
 
     # Write the updated TOML back to the file
-    with open(os.path.expanduser("dyn_config.toml"), "w", encoding="utf-8") as f:
+    with open(os.path.join(app_root, "backend", "dyn_config.toml"), "w", encoding="utf-8") as f:
         f.write(tomlkit.dumps(dyn_config))
         f.flush()
 
@@ -372,52 +373,60 @@ async def save_config(options: ModelSelect):
 
 
 @app.post("/api/upload-documents")
-async def upload_documents(documents: List[UploadFile] = File(...)):
+async def upload_documents(documents: List[UploadFile] = File(...), system_prompt: str = Form(...)):
     try:
+        # Validate that at least one document is uploaded
+        if not documents:
+            raise HTTPException(status_code=422, detail="No documents were uploaded.")
+        
+        # Validate that the system prompt is not empty
+        if not system_prompt.strip():
+            raise HTTPException(status_code=422, detail="System prompt cannot be empty.")
+
+        if not os.path.exists(LOCAL_DOCS_DIR):
+            os.makedirs(LOCAL_DOCS_DIR)  # Ensure the directory for saving files exists
+
+        file_names = []
         for document in documents:
-            file_path = os.path.join(app_root, "uploaded_documents", document.filename)
+            file_path = os.path.join(LOCAL_DOCS_DIR, document.filename)
             with open(file_path, "wb") as f:
-                f.write(await document.read())
-        return {"message": "Documents uploaded successfully"}
+                f.write(await document.read())  # Save the uploaded file content
+            file_names.append(document.filename)
+
+        # Load the original TOML file with tomlkit to preserve structure and comments
+        with open(os.path.join(app_root, "backend", "dyn_config.toml"), "r", encoding="utf-8") as f:
+            dyn_config = tomlkit.parse(f.read())
+
+        # Update the TOML structure with new values
+        dyn_config['Knowledge']['DOCUMENTS'] = ','.join(file_names)
+        dyn_config['Knowledge']['ROBOT_DESC'] = system_prompt.strip()
+
+        # Write the updated TOML back to the file
+        with open(os.path.join(app_root, "backend", "dyn_config.toml"), "w", encoding="utf-8") as f:
+            f.write(tomlkit.dumps(dyn_config))
+            f.flush()
+
+        return {"message": "Documents and system prompt uploaded and saved successfully."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error uploading documents: {str(e)}")
+        raise HTTPException(status_code=422, detail=f"Error uploading documents or saving system prompt: {str(e)}")
 
 
-@app.put("/api/save-knowledge")
-async def save_knowledge(data: Dict[str, str]):
+# Removed redundant endpoint `/api/save-selected-documents` to avoid conflicts.
+
+
+@app.get("/api/documents")
+async def fetch_documents():
     try:
-        knowledge_text = data.get("knowledge", "")
-        system_prompt = data.get("system_prompt", "")
+        # Fetch the list of documents and system prompt
+        documents = dcfg['Knowledge']['DOCUMENTS'].split(',') if dcfg['Knowledge']['DOCUMENTS'] else []
+        system_prompt = dcfg['Knowledge']['ROBOT_DESC']
 
-        knowledge_file = os.path.join(app_root, "knowledge.txt")
-        system_prompt_file = os.path.join(app_root, "system_prompt.txt")
-
-        # Save knowledge text
-        with open(knowledge_file, "w", encoding="utf-8") as f:
-            f.write(knowledge_text)
-
-        # Save system prompt
-        with open(system_prompt_file, "w", encoding="utf-8") as f:
-            f.write(system_prompt)
-
-        return {"message": "Knowledge and system prompt saved successfully"}
+        return {
+            "documents": documents,
+            "system_prompt": system_prompt
+        }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error saving knowledge: {str(e)}")
-
-
-@app.post("/api/save-selected-files")
-async def save_selected_files(data: Dict[str, List[str]]):
-    try:
-        file_paths = data.get("file_paths", [])
-        selected_files_path = os.path.join(app_root, "selected_files.txt")
-
-        # Save the file paths to a text file
-        with open(selected_files_path, "w", encoding="utf-8") as f:
-            f.write("\n".join(file_paths))
-
-        return {"message": "Selected file paths saved successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error saving selected file paths: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching documents and system prompt: {str(e)}")
 
 
 if __name__ == "__main__":
