@@ -51,6 +51,21 @@ if dotenv_path:
 scfg = toml.load(os.path.join(app_root, "backend", "sta_config.toml"))
 dcfg = toml.load(os.path.join(app_root, "backend", "dyn_config.toml"))
 
+# Load factory defaults
+factory_cfg = toml.load(os.path.join(app_root, "backend", "factory.toml"))
+
+# Merge dcfg with factory_cfg for missing or empty fields
+def merge_with_factory_config(dcfg, factory_cfg):
+    for section, values in factory_cfg.items():
+        if section not in dcfg:
+            dcfg[section] = values
+        else:
+            for key, value in values.items():
+                if key not in dcfg[section] or not dcfg[section][key]:
+                    dcfg[section][key] = value
+
+merge_with_factory_config(dcfg, factory_cfg)
+
 # llm
 llm_provider = dcfg['Deployment']['LLM_PROVIDER']  # os.getenv("LLM_PROVIDER")
 if llm_provider:
@@ -87,7 +102,7 @@ files: str = dcfg['Knowledge']['DOCUMENTS']  # os.getenv("DOCUMENTS")
 robot_desc: str = dcfg['Knowledge']['ROBOT_DESC']  # os.getenv("ROBOT_DESC")
 pages = []
 for file in files.split(','):
-    file = os.path.abspath(os.path.join(app_root, file.strip()))
+    file = os.path.abspath(os.path.join(app_root, 'local_docs', file.strip()))
     _, ext = os.path.splitext(file)
     if ext == '.txt':
         # Load .txt document
