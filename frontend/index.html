@@ -55,7 +55,7 @@
                         <select id="embedding-model"></select>
                     </div>
                 </div>
-                <button class="save-button">保存</button>
+                <button id="save-model-button" class="save-button">保存</button>
             </div>
             <div id="knowledge-tab" class="tab-content">
                 <div class="file-container">
@@ -85,7 +85,7 @@
     </div>
 
     <script src="scripts.js"></script>
-    <script>
+    <!-- <script>
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('config-button').addEventListener('click', openConfigModal);
             document.getElementById('send-button').addEventListener('click', sendMessage);
@@ -125,13 +125,13 @@
                 if (response.ok) {
                     alert('结果: 配置已保存');
                     localStorage.setItem('lastConfig', JSON.stringify(config));
-                    closeConfigModal();
+                    // Do not close the modal after saving
                 } else {
                     alert('结果: 保存配置时出错');
                 }
             })
             .catch(error => console.error('Error saving config:', error));
         }
-    </script>
+    </script> -->
 </body>
 </html>

@@ -100,48 +100,137 @@ function closeConfigModal() {
 
 // Attach the openConfigModal function to the config button
 document.addEventListener('DOMContentLoaded', () => {
+    // Disable "保存" buttons initially
+    document.querySelectorAll('.save-button').forEach(button => {
+        button.disabled = true;
+        button.style.backgroundColor = '#6c757d'; // Gray color for disabled state
+        button.style.cursor = 'not-allowed';
+    });
+
+    // Attach event listeners for modal and tabs
     document.getElementById('config-button').addEventListener('click', openConfigModal);
     document.querySelector('.close').addEventListener('click', closeConfigModal);
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.addEventListener('click', () => switchTab(button.dataset.tab));
+    });
+    document.getElementById('send-button').addEventListener('click', sendMessage);
+    document.getElementById('user-input').addEventListener('keydown', keyDown);
+
+    // Attach event listeners for model tab
+    document.getElementById('llm-provider').addEventListener('change', () => {
+        updateLlmModels();
+        updateProviderDescription();
+        enableSaveButton('model-tab'); // Enable save button when LLM provider changes
+    });
+    document.getElementById('llm-model').addEventListener('change', () => {
+        enableSaveButton('model-tab'); // Enable save button when LLM model changes
+    });
+    document.getElementById('embedding-provider').addEventListener('change', () => {
+        updateEmbeddingModels();
+        enableSaveButton('model-tab'); // Enable save button when embedding provider changes
+    });
+    document.getElementById('embedding-model').addEventListener('change', () => {
+        enableSaveButton('model-tab'); // Enable save button when embedding model changes
+    });
+    document.getElementById('save-model-button').addEventListener('click', saveKnowledgeBase);
+
+    // Attach event listeners for knowledge tab
+    document.getElementById('add-document-button').addEventListener('click', triggerFileInput);
+    document.getElementById('delete-document-button').addEventListener('click', deleteSelectedFile);
+    document.getElementById('document-input').addEventListener('change', addDocuments);
+    document.getElementById('system-prompt').addEventListener('input', () => enableSaveButton('knowledge-tab'));
+    document.getElementById('save-knowledge-button').addEventListener('click', saveKnowledgeBase);
+
+    // Initialize tabs
+    initializeModelTab();
+    initializeKnowledgeTab();
 });
 
 let llmModelsData = {};
 let embeddingModelsData = {};
 
-function initializeConfig() {
-    fetch(`${BASE_URL}/api/models/fetch`, { // Separate endpoint for fetching configurations
+// function initializeConfig() {
+//     fetch(`${BASE_URL}/api/models/fetch`, { // Separate endpoint for fetching configurations
+//         method: 'GET'
+//     })
+//     .then(response => response.json())
+//     .then(data => {
+//         llmModelsData = data.model_support.reduce((acc, item) => {
+//             acc[item.provider] = item.llm_model.map(model => ({ value: model, label: model }));
+//             return acc;
+//         }, {});
+//         embeddingModelsData = data.model_support.reduce((acc, item) => {
+//             acc[item.provider] = item.emb_model.map(model => ({ value: model, label: model }));
+//             return acc;
+//         }, {});
+//         populateSelect('llm-provider', data.model_support.map(item => ({ value: item.provider, label: item.provider })));
+//         populateSelect('embedding-provider', data.model_support.map(item => ({ value: item.provider, label: item.provider })));
+//         loadLastSelectedConfig();
+//     })
+//     .catch(error => console.error('Error fetching config:', error));
+// }
+
+function initializeModelTab() {
+    fetch(`${BASE_URL}/api/models`, { // Fetch model configuration options
         method: 'GET'
     })
     .then(response => response.json())
     .then(data => {
+        if (!data.model_support || !Array.isArray(data.model_support)) {
+            throw new Error('Invalid or missing model_support data.');
+        }
+        if (!data.model_selected) {
+            throw new Error('Invalid or missing model_selected data.');
+        }
+
+        // Populate LLM provider dropdown
+        populateSelect('llm-provider', data.model_support.map(item => ({ value: item.provider, label: item.provider })));
+
+        // Populate embedding provider dropdown
+        populateSelect('embedding-provider', data.model_support.map(item => ({ value: item.provider, label: item.provider })));
+
+        // Populate LLM models based on the selected provider
         llmModelsData = data.model_support.reduce((acc, item) => {
             acc[item.provider] = item.llm_model.map(model => ({ value: model, label: model }));
             return acc;
         }, {});
+        updateLlmModels();
+
+        // Populate embedding models based on the selected provider
         embeddingModelsData = data.model_support.reduce((acc, item) => {
             acc[item.provider] = item.emb_model.map(model => ({ value: model, label: model }));
             return acc;
         }, {});
-        populateSelect('llm-provider', data.model_support.map(item => ({ value: item.provider, label: item.provider })));
-        populateSelect('embedding-provider', data.model_support.map(item => ({ value: item.provider, label: item.provider })));
-        loadLastSelectedConfig();
+        updateEmbeddingModels();
+
+        // Set selected values based on model_selected
+        document.getElementById('llm-provider').value = data.model_selected.llm_provider || '';
+        document.getElementById('llm-model').value = data.model_selected.llm_model || '';
+        document.getElementById('embedding-provider').value = data.model_selected.emb_provider || '';
+        document.getElementById('embedding-model').value = data.model_selected.emb_model || '';
+
+        // Update provider description
+        updateProviderDescription();
     })
-    .catch(error => console.error('Error fetching config:', error));
+    .catch(error => console.error('Error fetching model configuration:', error));
+
+    disableSaveButton('model-tab'); // Disable save button initially
 }
 
-function loadLastSelectedConfig() {
-    const lastConfig = JSON.parse(localStorage.getItem('lastConfig')) || {};
-    const llmProvider = lastConfig.llmProvider || document.getElementById('llm-provider').options[0].value;
-    const embeddingProvider = lastConfig.embeddingProvider || document.getElementById('embedding-provider').options[0].value;
+// function loadLastSelectedConfig() {
+//     const lastConfig = JSON.parse(localStorage.getItem('lastConfig')) || {};
+//     const llmProvider = lastConfig.llmProvider || document.getElementById('llm-provider').options[0].value;
+//     const embeddingProvider = lastConfig.embeddingProvider || document.getElementById('embedding-provider').options[0].value;
 
-    document.getElementById('llm-provider').value = llmProvider;
-    document.getElementById('embedding-provider').value = embeddingProvider;
+//     document.getElementById('llm-provider').value = llmProvider;
+//     document.getElementById('embedding-provider').value = embeddingProvider;
 
-    updateLlmModels();
-    updateEmbeddingModels();
+//     updateLlmModels();
+//     updateEmbeddingModels();
 
-    document.getElementById('llm-model').value = lastConfig.llmModel || document.getElementById('llm-model').options[0].value;
-    document.getElementById('embedding-model').value = lastConfig.embeddingModel || document.getElementById('embedding-model').options[0].value;
-}
+//     document.getElementById('llm-model').value = lastConfig.llmModel || document.getElementById('llm-model').options[0].value;
+//     document.getElementById('embedding-model').value = lastConfig.embeddingModel || document.getElementById('embedding-model').options[0].value;
+// }
 
 function updateLlmModels() {
     const selectedProvider = document.getElementById('llm-provider').value;
@@ -172,78 +261,45 @@ function populateSelect(elementId, options) {
 }
 
 function saveModelConfig() {
-    const messages = {
-        en: 'Please ensure all configuration items have valid values.',
-        zh: '请确保所有配置项均已选择有效值。'
-    };
-
-    const userLanguage = navigator.language.startsWith('zh') ? 'zh' : 'en'; // Detect user's language
-    const validationMessage = messages[userLanguage];
-
-    if (!llmProvider || !llmModel || !embProvider || !embModel) {
-        alert(validationMessage);
-        return;
-    }
-
     const llmProvider = document.getElementById('llm-provider').value;
     const llmModel = document.getElementById('llm-model').value;
     const embProvider = document.getElementById('embedding-provider').value;
     const embModel = document.getElementById('embedding-model').value;
 
     // Validate configuration values
-    if (!llmProvider || !llmModel || !embProvider || !embModel) {
+    if (!llmProvider || !llmModel || !embProvider || !embModel || !provDesc) {
         alert('请确保所有配置项均已选择有效值。');
         return;
     }
-    fetch(`${BASE_URL}/api/models/save`, { // Separate endpoint for saving configurations
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(config)
-    })
 
-    fetch(`${BASE_URL}/api/models`, { // Use BASE_URL
+    const model_config = {
+        llm_provider: llmProvider,
+        llm_model: llmModel,
+        emb_provider: embProvider,
+        emb_model: embModel,
+    };
+
+    fetch(`${BASE_URL}/api/models`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(config)
+        body: JSON.stringify(model_config)
     })
-    .then(() => {
-        updateButtonState(saveButton, true);
-        Toastify({
-            text: "Configuration saved successfully!",
-            duration: 3000,
-            gravity: "top",
-            position: "center",
-            backgroundColor: "#28a745", // Green for success
-            stopOnFocus: true
-        }).showToast();
-        setTimeout(() => {
+    .then(response => {
+        if (response.ok) {
+            alert('结果: 模型配置已保存');
             const saveButton = document.querySelector('#model-tab .save-button');
             saveButton.disabled = true; // Disable the save button
             saveButton.style.backgroundColor = '#6c757d'; // Gray color for disabled state
             saveButton.style.cursor = 'not-allowed';
-        }, 0); // Update button state after pop-up
+        } else {
+            alert('结果: 保存模型配置时出错');
+        }
     })
     .catch(error => {
         console.error('Error saving configuration:', error);
-
-        // Show an error toast notification
-        Toastify({
-            text: "Error saving configuration.",
-            duration: 3000,
-            gravity: "top",
-            position: "center",
-            backgroundColor: "#dc3545", // Red for error
-            stopOnFocus: true
-        }).showToast();
-        
-    })
-    .catch(error => {
-        console.error('Error saving config:', error);
-        alert('保存配置时发生错误');
+        alert('保存模型配置时发生错误');
     });
 }
 
@@ -291,6 +347,7 @@ function addDocuments() {
             });
         };
         reader.readAsText(file); // Read the file as text
+        enableSaveButton('knowledge-tab');
     });
 
     input.value = ''; // Clear the input
@@ -310,6 +367,7 @@ function deleteSelectedFile() {
     } else {
         alert('请先选择一个文档');
     }
+    enableSaveButton('knowledge-tab');
 }
 
 function clearSelectedFiles() {
@@ -329,7 +387,7 @@ function clearSelectedFiles() {
 
 function saveKnowledgeBase() {
     try {
-        const formData = new FormData(); // Create a new FormData object
+        const formData = new FormData();
         const input = document.getElementById('document-input');
 
         // Ensure at least one file is selected or accumulated
@@ -337,56 +395,51 @@ function saveKnowledgeBase() {
             throw new Error('请至少选择一个文档或确保已添加文档路径。');
         }
 
-        // Append files from the file input to FormData
+        // Append files and system prompt to FormData
         Array.from(input.files).forEach(file => {
-            formData.append('documents', file); // Append each file object to the 'documents' field
+            formData.append('documents', file);
         });
 
-        // Append accumulated file paths to FormData
         accumulatedFilePaths.forEach(filePath => {
             const matchingFile = selectedDocumentsContent.find(doc => doc.name === filePath);
             if (matchingFile) {
-                const fileContent = new Blob([matchingFile.content], { type: 'text/plain' }); // Create a Blob for the file content
-                formData.append('documents', new File([fileContent], filePath)); // Add file content as a File object
+                const fileContent = new Blob([matchingFile.content], { type: 'text/plain' });
+                formData.append('documents', new File([fileContent], filePath));
             }
         });
 
-        // Append system prompt to FormData
         const systemPrompt = document.getElementById('system-prompt').value.trim();
         if (!systemPrompt) {
             throw new Error('系统提示词不能为空，请输入有效的系统提示词。');
         }
-        formData.append('system_prompt', systemPrompt); // Append the system prompt to the 'system_prompt' field
+        formData.append('system_prompt', systemPrompt);
 
-        // Append provider description to FormData
         const providerDescription = document.getElementById('provider-description-box').value.trim();
         if (!providerDescription) {
             throw new Error('提供者描述不能为空，请确保已选择有效的提供者。');
         }
-        formData.append('provider_description', providerDescription); // Append the provider description
+        formData.append('provider_description', providerDescription);
 
-        // Send the FormData object as the request body
         fetch(`${BASE_URL}/api/upload-documents`, {
             method: 'POST',
-            body: formData // Automatically sets the correct Content-Type header
+            body: formData
         })
-        .then(() => {
-            updateButtonState(saveButton, true);
-            selectedDocumentsContent = [];
-            const saveButton = document.getElementById('save-knowledge-button');
-            saveButton.disabled = true;
-            saveButton.style.backgroundColor = '#6c757d'; // Gray color for disabled state
-            saveButton.style.cursor = 'not-allowed';
-        })
-        .catch(() => {
-            response.text().then(errorText => {
-                throw new Error(`Failed to upload documents, system prompt, and provider description to the server. ${errorText}`);
-            });
-        // });
+        .then(response => {
+            if (response.ok) {
+                alert('文档和系统提示词已成功上传到服务器并保存。');
+                const saveButton = document.getElementById('save-knowledge-button');
+                saveButton.disabled = true; // Disable the save button
+                saveButton.style.backgroundColor = '#6c757d'; // Gray color for disabled state
+                saveButton.style.cursor = 'not-allowed';
+            } else {
+                response.text().then(errorText => {
+                    throw new Error(`Failed to upload documents and system prompt to the server. ${errorText}`);
+                });
+            }
         })
         .catch(error => {
             console.error('Error during document upload:', error);
-            alert(`上传文档、系统提示词和提供者描述时出错: ${error.message}`);
+            alert(`上传文档和系统提示词时出错: ${error.message}`);
         });
     } catch (error) {
         console.error('Error:', error);
@@ -414,94 +467,6 @@ function updateProviderDescription() {
     const descriptionBox = document.getElementById('provider-description-box');
     descriptionBox.value = descriptions[selectedProvider] || '暂无相关介绍。';
 }
-
-function initializeModelTab() {
-    fetch(`${BASE_URL}/api/models`, { // Fetch model configuration options
-        method: 'GET'
-    })
-    .then(response => response.json())
-    .then(data => {
-        llmModelsData = data.model_support.reduce((acc, item) => {
-            acc[item.provider] = item.llm_model.map(model => ({ value: model, label: model }));
-            return acc;
-        }, {});
-        embeddingModelsData = data.model_support.reduce((acc, item) => {
-            acc[item.provider] = item.emb_model.map(model => ({ value: model, label: model }));
-            return acc;
-        }, {});
-
-        // Populate LLM provider dropdown
-        populateSelect('llm-provider', data.model_support.map(item => ({ value: item.provider, label: item.provider })));
-
-        // Populate embedding provider dropdown
-        populateSelect('embedding-provider', data.model_support.map(item => ({ value: item.provider, label: item.provider })));
-
-        // Trigger updates for models and descriptions
-        updateLlmModels();
-        updateEmbeddingModels();
-        updateProviderDescription();
-    })
-    .catch(error => console.error('Error fetching model configuration:', error));
-}
-
-// Utility function to update button state
-function updateButtonState(button, isDisabled) {
-    button.disabled = isDisabled;
-    button.style.backgroundColor = isDisabled ? '#6c757d' : '#28a745'; // Gray for disabled, green for enabled
-    button.style.cursor = isDisabled ? 'not-allowed' : 'pointer';
-}
-
-// Attach the saveKnowledgeBase function to the save button
-document.getElementById('save-knowledge-button').addEventListener('click', saveKnowledgeBase);
-//     .catch(error => console.error('Error fetching config:', error));
-// }
-function disableSaveButton() {
-// Attach the saveKnowledgeBase function to the save button
-    updateButtonState(button, true);
-    // Disable "保存" buttons initially
-    document.querySelectorAll('.save-button').forEach(button => {
-        button.disabled = true;
-        button.style.backgroundColor = '#6c757d'; // Gray color for disabled state
-        button.style.cursor = 'not-allowed';
-    });
-        updateButtonState(saveButton, false);
-    const saveButton = document.querySelector(`#${tabId} .save-button`);
-    if (saveButton) {
-        saveButton.disabled = false;
-        saveButton.style.backgroundColor = '#28a745'; // Green color for enabled state
-        saveButton.style.cursor = 'pointer';
-
-        // Attach the appropriate save function to the button
-        if (tabId === 'model-tab') {
-            saveButton.onclick = saveModelConfig; // Attach saveModelConfig for the "模型" tab
-        } else if (tabId === 'knowledge-tab') {
-            saveButton.onclick = saveKnowledgeBase; // Attach saveKnowledgeBase for the "知识库" tab
-        }
-    }
-}
-
-// Attach event listeners to detect changes in the "模型" tab
-function attachModelTabListeners() {
-    document.getElementById('llm-provider').addEventListener('change', () => enableSaveButton('model-tab'));
-    document.getElementById('llm-model').addEventListener('change', () => enableSaveButton('model-tab'));
-    document.getElementById('embedding-provider').addEventListener('change', () => enableSaveButton('model-tab'));
-    document.getElementById('embedding-model').addEventListener('change', () => enableSaveButton('model-tab'));
-}
-
-// Attach event listeners to detect changes in the "知识库" tab
-function attachKnowledgeTabListeners() {
-    document.getElementById('system-prompt').addEventListener('input', () => enableSaveButton('knowledge-tab'));
-    document.getElementById('document-input').addEventListener('change', () => enableSaveButton('knowledge-tab'));
-    document.getElementById('add-document-button').addEventListener('click', () => enableSaveButton('knowledge-tab'));
-    document.getElementById('delete-document-button').addEventListener('click', () => enableSaveButton('knowledge-tab'));
-}
-
-// Initialize save button state and attach listeners on page load
-document.addEventListener('DOMContentLoaded', () => {
-    initializeSaveButtonState();
-    attachModelTabListeners();
-    attachKnowledgeTabListeners();
-});
 
 function initializeKnowledgeTab() {
     fetch(`${BASE_URL}/api/documents`, { // Fetch documents and system prompt
@@ -538,18 +503,34 @@ function initializeKnowledgeTab() {
         saveButton.style.cursor = 'not-allowed';
     })
     .catch(error => console.error('Error initializing knowledge tab:', error));
+
+    disableSaveButton('knowledge-tab'); // Disable save button initially
 }
 
-// Call initializeKnowledgeTab on page load
-document.addEventListener('DOMContentLoaded', () => {
-    initializeKnowledgeTab();
-});
+// Utility function to update button state
+function updateButtonState(button, isDisabled) {
+    button.disabled = isDisabled;
+    button.style.backgroundColor = isDisabled ? '#6c757d' : '#28a745'; // Gray for disabled, green for enabled
+    button.style.cursor = isDisabled ? 'not-allowed' : 'pointer';
+}
 
-// Ensure the model tab is initialized on page load
-document.addEventListener('DOMContentLoaded', () => {
-    initializeModelTab();
-});
+function enableSaveButton(tabId) {
+    const saveButton = document.querySelector(`#${tabId} .save-button`);
+    if (saveButton) {
+        saveButton.disabled = false;
+        saveButton.style.backgroundColor = '#28a745'; // Green color for enabled state
+        saveButton.style.cursor = 'pointer';
+    }
+}
 
-// Update references to saveConfig
-document.querySelector('#model-tab .save-button').addEventListener('click', saveModelConfig);
-document.querySelector('#knowledge-tab .save-button').addEventListener('click', saveKnowledgeBase);
+function disableSaveButton(tabId) {
+    const saveButton = document.querySelector(`#${tabId} .save-button`);
+    if (saveButton) {
+        saveButton.disabled = true;
+        saveButton.style.backgroundColor = '#6c757d'; // Gray color for disabled state
+        saveButton.style.cursor = 'not-allowed';
+    }
+}
+
+// Attach the saveKnowledgeBase function to the save button
+// document.getElementById('save-knowledge-button').addEventListener('click', saveKnowledgeBase);

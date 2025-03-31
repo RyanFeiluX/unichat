@@ -55,19 +55,41 @@ dcfg = toml.load(os.path.join(app_root, "backend", "dyn_config.toml"))
 factory_cfg = toml.load(os.path.join(app_root, "backend", "factory.toml"))
 
 # Merge dcfg with factory_cfg for missing or empty fields
-def merge_with_factory_config(dcfg, factory_cfg):
-    for section, values in factory_cfg.items():
-        if section not in dcfg:
-            dcfg[section] = values
-        else:
-            for key, value in values.items():
-                if key not in dcfg[section] or not dcfg[section][key]:
-                    dcfg[section][key] = value
+def merge_with_factory_config(target_cfg, source_cfg):
+    """
+    Merge the target configuration with the factory defaults.
 
+    This function ensures that empty fields in the target configuration
+    are filled with values from the factory configuration.
+
+    Args:
+        target_cfg (dict): The target configuration dictionary to be updated.
+        source_cfg (dict): The factory configuration dictionary containing default values.
+    """
+    for section, values in target_cfg.items():
+        if values is None:
+            target_cfg[section] = source_cfg[section] if section in source_cfg else None
+        elif isinstance(values, dict):
+            if section not in source_cfg:
+                continue
+            merge_with_factory_config(values, source_cfg[section])
+        elif isinstance(values, list):
+            if section not in source_cfg:
+                continue
+            if values is []:
+                target_cfg[section] = source_cfg[section]
+        elif isinstance(values, str):
+            if section not in source_cfg:
+                continue
+            if values == '' or values is None:
+                target_cfg[section] = source_cfg[section]
+
+
+# Ensure dynamic configuration is merged with factory defaults
 merge_with_factory_config(dcfg, factory_cfg)
 
 # llm
-llm_provider = dcfg['Deployment']['LLM_PROVIDER']  # os.getenv("LLM_PROVIDER")
+llm_provider = dcfg['Deployment']['LLM_PROVIDER'].upper()  # os.getenv("LLM_PROVIDER")
 if llm_provider:
     print(f'LLM provider : {llm_provider}')
     # llm_model = os.getenv("LLM_MODEL") or os.getenv(f'{llm_provider}_LLM_MODEL')
@@ -163,7 +185,7 @@ texts = text_splitter.create_documents(
 for j, t in enumerate(texts):
     t.id = f'Doc-{j}'
 
-emb_provider = dcfg['Deployment']['EMB_PROVIDER']  # os.getenv('EMB_PROVIDER')
+emb_provider = dcfg['Deployment']['EMB_PROVIDER'].upper()  # os.getenv('EMB_PROVIDER')
 if emb_provider:
     print(f'Embedding provider : {emb_provider}')
     emb_model = dcfg['Deployment']['EMB_MODEL']  # os.getenv(f"EMB_MODEL")
@@ -345,6 +367,7 @@ async def fetch_any():
 
 class ConfigSet(BaseModel):
     model_support: List[Dict[str, Union[str, List[str]]]]
+    model_selected: Dict[str, str]
 
 
 # API for http://127.0.0.1:8000/api/models
@@ -357,7 +380,11 @@ async def fetch_config():
                         'llm_model': scfg['Providers'][p][f'{p.upper()}_LLM_MODEL'].split(','),
                         'emb_model': scfg['Providers'][p][f'{p.upper()}_EMB_MODEL'].split(',')}
                        )
-    return ConfigSet(model_support=options)
+    sel = {'llm_provider': dcfg['Deployment']['LLM_PROVIDER'],
+           'llm_model': dcfg['Deployment']['LLM_MODEL'],
+           'emb_provider': dcfg['Deployment']['EMB_PROVIDER'],
+           'emb_model': dcfg['Deployment']['EMB_MODEL']}
+    return ConfigSet(model_support=options, model_selected=sel)
 
 
 # API for http://127.0.0.1:8000/api/models
