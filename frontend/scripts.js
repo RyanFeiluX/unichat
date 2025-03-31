@@ -416,7 +416,7 @@ function updateProviderDescription() {
 }
 
 function initializeModelTab() {
-    fetch(`${BASE_URL}/api/models`, { // Updated endpoint
+    fetch(`${BASE_URL}/api/models`, { // Fetch model configuration options
         method: 'GET'
     })
     .then(response => response.json())
@@ -429,9 +429,19 @@ function initializeModelTab() {
             acc[item.provider] = item.emb_model.map(model => ({ value: model, label: model }));
             return acc;
         }, {});
+
+        // Populate LLM provider dropdown
         populateSelect('llm-provider', data.model_support.map(item => ({ value: item.provider, label: item.provider })));
+
+        // Populate embedding provider dropdown
         populateSelect('embedding-provider', data.model_support.map(item => ({ value: item.provider, label: item.provider })));
+
+        // Trigger updates for models and descriptions
+        updateLlmModels();
+        updateEmbeddingModels();
+        updateProviderDescription();
     })
+    .catch(error => console.error('Error fetching model configuration:', error));
 }
 
 // Utility function to update button state
