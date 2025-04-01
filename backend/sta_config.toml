@@ -3,28 +3,34 @@
 OLLAMA_BASE_URL="https://api.openai.com/v1"
 OLLAMA_LLM_MODEL="moonshot-v1-8k,deepseek-chat,deepseek-reasoner,deepseek-r1:1.5b,Baichuan3-Turbo,qwen2-0.5b-instruct"
 OLLAMA_EMB_MODEL="text-embedding-ada-002,Baichuan-Text-Embedding,embedding-3,deepseek-r1:1.5b"
-OLLAMA_INTRO="A LLM deployment platform."
+OLLAMA_INTRO="Ollama is an open-source platform enabling easy local deployment of large language models (LLMs) like LLaMA and Mistral, focusing on simplicity, efficiency, and privacy."
 [Providers.OpenAI]
 OPENAI_BASE_URL="https://api.openai.com/v1"
 OPENAI_LLM_MODEL="gpt-4o-mini"
 OPENAI_EMB_MODEL="text-embedding-ada-002"
+OPENAI_INTRO="OpenAI, co-founded by Elon Musk in 2015, develops safe, beneficial AI. Known for GPT-4 and ChatGPT, it advances NLP, machine learning, and generative AI, partnering with Microsoft to ensure ethical, universal impact."
 [Providers.MoonShot]
 MOONSHOT_BASE_URL="https://api.moonshot.cn/v1"
 MOONSHOT_LLM_MODEL="moonshot-v1-8k,moonshot-v1-32k"
 MOONSHOT_EMB_MODEL=""
+MOONSHOT_INTRO="Moonshot, derived from the 1969 Apollo mission, refers to ambitious, groundbreaking projects needing radical tech, aiming to solve huge problems despite high risks and uncertain gains."
 [Providers.Baichuan]
 BAICHUAN_BASE_URL="https://api.baichuan-ai.com/v1"
 BAICHUAN_LLM_MODEL="Baichuan3-Turbo"
 BAICHUAN_EMB_MODEL="Baichuan-Text-Embedding"
+BAICHUAN_INTRO="Baichuan AI, founded by Wang Xiaochuan in 2023, develops large language models like Baichuan 2, excelling in long contexts and search enhancement, offering open-source and enterprise solutions."
 [Providers.ZhipuAI]
 ZHIPUAI_BASE_URL="https://open.bigmodel.cn/api/paas/v4/"
 ZHIPUAI_LLM_MODEL="GLM-3-Turbo"
 ZHIPUAI_EMB_MODEL="embedding-3"
+ZHIPUAI_INTRO="Zhipu AI, founded in 2019, develops cognitive intelligence large models like GLM series and ChatGLM, promoting open-source and MaaS for AI innovation."
 [Providers.DeepSeek]
 DEEPSEEK_BASE_URL="https://api.deepseek.com"
 DEEPSEEK_LLM_MODEL="deepseek-chat,deepseek-reasoner,deepseek-r1:1.5b,deepseek-r1:8b,deepseek-r1:14b"
 DEEPSEEK_EMB_MODEL="Embedding-3"
+DEEPSEEK_INTRO="DeepSeek, founded in 2023, develops efficient, open - source large language models like V3 and R1, excelling in multi - language and multi - modal tasks with low costs."
 [Providers.DashScope]
 DASHSCOPE_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
 DASHSCOPE_LLM_MODEL="qwen2-0.5b-instruct"
 DASHSCOPE_EMB_MODEL=""
+DASHSCOPE_INTRO=""

@@ -365,26 +365,27 @@ async def fetch_any():
     print(f'GET: /api')
     return {'API': 'config'}
 
-class ConfigSet(BaseModel):
+class ModelConfig(BaseModel):
     model_support: List[Dict[str, Union[str, List[str]]]]
-    model_selected: Dict[str, str]
+    model_select: Dict[str, str]
 
 
 # API for http://127.0.0.1:8000/api/models
-@app.get("/api/models", response_model=ConfigSet)  # Updated endpoint
+@app.get("/api/models", response_model=ModelConfig)  # Updated endpoint
 async def fetch_config():
     print(f'GET: /api/models')
     options: list = []
     for p in scfg['Providers'].keys():
         options.append({'provider': p,
                         'llm_model': scfg['Providers'][p][f'{p.upper()}_LLM_MODEL'].split(','),
-                        'emb_model': scfg['Providers'][p][f'{p.upper()}_EMB_MODEL'].split(',')}
+                        'emb_model': scfg['Providers'][p][f'{p.upper()}_EMB_MODEL'].split(','),
+                        'prov_intro': scfg['Providers'][p][f'{p.upper()}_INTRO']}
                        )
     sel = {'llm_provider': dcfg['Deployment']['LLM_PROVIDER'],
            'llm_model': dcfg['Deployment']['LLM_MODEL'],
            'emb_provider': dcfg['Deployment']['EMB_PROVIDER'],
            'emb_model': dcfg['Deployment']['EMB_MODEL']}
-    return ConfigSet(model_support=options, model_selected=sel)
+    return ModelConfig(model_support=options, model_select=sel)
 
 
 # API for http://127.0.0.1:8000/api/models
@@ -451,9 +452,6 @@ async def upload_documents(documents: List[UploadFile] = File(...), system_promp
         return {"message": "Documents and system prompt uploaded and saved successfully."}
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Error uploading documents or saving system prompt: {str(e)}")
-
-
-# Removed redundant endpoint `/api/save-selected-documents` to avoid conflicts.
 
 
 @app.get("/api/documents")

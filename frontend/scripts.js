@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('embedding-model').addEventListener('change', () => {
         enableSaveButton('model-tab'); // Enable save button when embedding model changes
     });
-    document.getElementById('save-model-button').addEventListener('click', saveKnowledgeBase);
+    document.getElementById('save-model-button').addEventListener('click', saveModelConfig);
 
     // Attach event listeners for knowledge tab
     document.getElementById('add-document-button').addEventListener('click', triggerFileInput);
@@ -170,6 +170,8 @@ let embeddingModelsData = {};
 //     .catch(error => console.error('Error fetching config:', error));
 // }
 
+provider_intro = {}
+
 function initializeModelTab() {
     fetch(`${BASE_URL}/api/models`, { // Fetch model configuration options
         method: 'GET'
@@ -179,8 +181,8 @@ function initializeModelTab() {
         if (!data.model_support || !Array.isArray(data.model_support)) {
             throw new Error('Invalid or missing model_support data.');
         }
-        if (!data.model_selected) {
-            throw new Error('Invalid or missing model_selected data.');
+        if (!data.model_select) {
+            throw new Error('Invalid or missing model_select data.');
         }
 
         // Populate LLM provider dropdown
@@ -203,13 +205,18 @@ function initializeModelTab() {
         }, {});
         updateEmbeddingModels();
 
-        // Set selected values based on model_selected
-        document.getElementById('llm-provider').value = data.model_selected.llm_provider || '';
-        document.getElementById('llm-model').value = data.model_selected.llm_model || '';
-        document.getElementById('embedding-provider').value = data.model_selected.emb_provider || '';
-        document.getElementById('embedding-model').value = data.model_selected.emb_model || '';
+        // Set selected values based on model_select
+        document.getElementById('llm-provider').value = data.model_select.llm_provider || '';
+        document.getElementById('llm-model').value = data.model_select.llm_model || '';
+        document.getElementById('embedding-provider').value = data.model_select.emb_provider || '';
+        document.getElementById('embedding-model').value = data.model_select.emb_model || '';
 
         // Update provider description
+        // Organize provider descriptions
+        provider_intro = data.model_support.reduce((acc, item) => {
+            acc[item.provider] = item.prov_intro || '暂无相关介绍。'; // Default description if none provided
+            return acc;
+        }, {});
         updateProviderDescription();
     })
     .catch(error => console.error('Error fetching model configuration:', error));
@@ -267,7 +274,7 @@ function saveModelConfig() {
     const embModel = document.getElementById('embedding-model').value;
 
     // Validate configuration values
-    if (!llmProvider || !llmModel || !embProvider || !embModel || !provDesc) {
+    if (!llmProvider || !llmModel || !embProvider || !embModel) {
         alert('请确保所有配置项均已选择有效值。');
         return;
     }
@@ -289,10 +296,11 @@ function saveModelConfig() {
     .then(response => {
         if (response.ok) {
             alert('结果: 模型配置已保存');
-            const saveButton = document.querySelector('#model-tab .save-button');
-            saveButton.disabled = true; // Disable the save button
-            saveButton.style.backgroundColor = '#6c757d'; // Gray color for disabled state
-            saveButton.style.cursor = 'not-allowed';
+            // const saveButton = document.querySelector('#model-tab .save-button');
+            // saveButton.disabled = true; // Disable the save button
+            // saveButton.style.backgroundColor = '#6c757d'; // Gray color for disabled state
+            // saveButton.style.cursor = 'not-allowed';
+            disableSaveButton('model-tab'); // Disable save button after saving
         } else {
             alert('结果: 保存模型配置时出错');
         }
@@ -414,11 +422,11 @@ function saveKnowledgeBase() {
         }
         formData.append('system_prompt', systemPrompt);
 
-        const providerDescription = document.getElementById('provider-description-box').value.trim();
-        if (!providerDescription) {
-            throw new Error('提供者描述不能为空，请确保已选择有效的提供者。');
-        }
-        formData.append('provider_description', providerDescription);
+        // const providerDescription = document.getElementById('provider-description-box').value.trim();
+        // if (!providerDescription) {
+        //     throw new Error('提供者描述不能为空，请确保已选择有效的提供者。');
+        // }
+        // formData.append('provider_description', providerDescription);
 
         fetch(`${BASE_URL}/api/upload-documents`, {
             method: 'POST',
@@ -427,10 +435,11 @@ function saveKnowledgeBase() {
         .then(response => {
             if (response.ok) {
                 alert('文档和系统提示词已成功上传到服务器并保存。');
-                const saveButton = document.getElementById('save-knowledge-button');
-                saveButton.disabled = true; // Disable the save button
-                saveButton.style.backgroundColor = '#6c757d'; // Gray color for disabled state
-                saveButton.style.cursor = 'not-allowed';
+                // const saveButton = document.getElementById('save-knowledge-button');
+                // saveButton.disabled = true; // Disable the save button
+                // saveButton.style.backgroundColor = '#6c757d'; // Gray color for disabled state
+                // saveButton.style.cursor = 'not-allowed';
+                disableSaveButton('knowledge-tab'); // Disable save button after saving
             } else {
                 response.text().then(errorText => {
                     throw new Error(`Failed to upload documents and system prompt to the server. ${errorText}`);
@@ -459,13 +468,9 @@ function toggleRowSelection(row) {
 
 function updateProviderDescription() {
     const selectedProvider = document.getElementById('llm-provider').value;
-    const descriptions = {
-        'ProviderA': 'ProviderA 提供高性能的语言模型，适用于多种场景。',
-        'ProviderB': 'ProviderB 专注于低延迟和高效率的模型服务。',
-        'ProviderC': 'ProviderC 提供丰富的模型选择，支持多语言处理。'
-    };
+    const description = provider_intro[selectedProvider];
     const descriptionBox = document.getElementById('provider-description-box');
-    descriptionBox.value = descriptions[selectedProvider] || '暂无相关介绍。';
+    descriptionBox.value = description || '暂无相关介绍。';
 }
 
 function initializeKnowledgeTab() {
