@@ -112,6 +112,7 @@ dependencies:
   - tiktoken=0.9.0
   - tk=8.6.14
   - toml=0.10.2
+  - tomlkit=0.13.2
   - tqdm=4.67.1
   - typer=0.15.2
   - typer-slim=0.15.2
@@ -138,7 +139,7 @@ dependencies:
   - pip:
       - dashscope==1.22.1
       - langchain==0.3.20
-      - langchain-community==0.3.20
+      - langchain-community==0.3.9
       - langchain-core==0.3.46
       - langchain-deepseek==0.1.2
       - langchain-ollama==0.2.3
@@ -147,5 +148,6 @@ dependencies:
       - openai==1.66.3
       - pydantic==2.9.2
       - pydantic-settings==2.8.1
+      - pymupdf==1.25.4
       - websocket-client==1.8.0
 prefix: D:\ProgramData\anaconda3\envs\condaenv-unichat
