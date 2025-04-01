@@ -1,7 +1,7 @@
 [Knowledge]
 # Acceptable: .md,.pdf,.docx,.csv
-#"docs/解答手册.md","docs/tick-energy.pdf","docs/高氧手环内部资料.txt","docs/节拍能量体系的高维理论入口.txt"
-DOCUMENTS="高氧手环内部资料.txt,节拍能量体系的高维理论入口.txt,tick-energy.pdf"
+#"tick-energy.pdf","高氧手环内部资料.txt","节拍能量体系的高维理论入口.txt"
+DOCUMENTS="tick-energy.pdf,高氧手环内部资料.txt,节拍能量体系的高维理论入口.txt"
 ROBOT_DESC="你是节拍能量技术咨询助理，随时准备回答用户的相关问题。"
 
 ##############

@@ -417,7 +417,7 @@ function saveKnowledgeBase() {
             throw new Error('请至少选择一个文档或确保已添加文档路径。');
         }
 
-        // Append files and system prompt to FormData
+        // Append files to FormData
         Array.from(input.files).forEach(file => {
             formData.append('documents', file);
         });
@@ -455,11 +455,8 @@ function saveKnowledgeBase() {
         }
         formData.append('system_prompt', systemPrompt);
 
-        // const providerDescription = document.getElementById('provider-description-box').value.trim();
-        // if (!providerDescription) {
-        //     throw new Error('提供者描述不能为空，请确保已选择有效的提供者。');
-        // }
-        // formData.append('provider_description', providerDescription);
+        // Append the new document list to the form data
+        formData.append('document_list', accumulatedFilePaths.join(','));
 
         fetch(`${BASE_URL}/api/upload-documents`, {
             method: 'POST',
@@ -521,6 +518,9 @@ function initializeKnowledgeTab() {
                 row.innerHTML = `<td>${doc}</td>`;
                 row.onclick = () => toggleRowSelection(row); // Add click event for selection
                 tableBody.appendChild(row);
+
+                // Add the document name to accumulatedFilePaths
+                accumulatedFilePaths.push(doc);
             });
         } else {
             // Add a placeholder row if no documents exist

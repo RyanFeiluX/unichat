@@ -1,4 +1,5 @@
 import os, sys, re
+import shutil
 import uvicorn
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
@@ -125,8 +126,22 @@ robot_desc: str = dcfg['Knowledge']['ROBOT_DESC']  # os.getenv("ROBOT_DESC")
 pages = []
 for file in files.split(','):
     file = os.path.abspath(os.path.join(app_root, 'local_docs', file.strip()))
-    _, ext = os.path.splitext(file)
-    if ext == '.txt':
+    bn, ext = os.path.splitext(file)
+    if ext.lower() == '.md':
+        # Considering of loading markdown needing NLTK data. It makes it complicated. Here a workaround
+        # is that markdown files are firstly converted to Word and then loaded as Word documents.
+        from pypandoc import convert_file as cvt_doctype
+        import tempfile
+        if os.path.exists('temp'):
+            shutil.rmtree('temp')
+        os.makedirs('temp')
+        temp_file = os.path.join('temp', os.path.split(file)[1])
+        temp_file = os.path.splitext(temp_file)[0] + '.docx'
+        cvt_doctype(file, 'docx', outputfile=temp_file)
+        ext = '.docx'
+        file = temp_file
+
+    if ext.lower() == '.txt':
         # Load .txt document
         print(f'Load text document {file} ...')
         loader = TextLoader(file, encoding='utf-8', autodetect_encoding=True)
@@ -134,16 +149,19 @@ for file in files.split(','):
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=20)
         pages.extend(text_splitter.split_documents(documents))
         assert len(pages) > 0, f'No content is loaded yet. Please check document {file}'
-    elif ext == '.md':
+    elif ext.lower() == '.md':
         # Load .MD document
         print(f'Load markdown document {file} ...')
-        loader = UnstructuredMarkdownLoader(file, mode='elements', encoding='utf-8')
+        try:
+            loader = UnstructuredMarkdownLoader(file, mode='elements', autodetect_coding=True, strategy="fast",)
+        except Exception as e:
+            raise RuntimeError(f'Loading {file} failed. {repr(e)}')
         documents = loader.load()
         text_splitter = MarkdownTextSplitter.from_language(language=Language("markdown"),
                                                            chunk_size=300, chunk_overlap=20)
         pages.extend(text_splitter.split_documents(documents))
         assert len(pages) > 0, f'No content is loaded yet. Please check document {file}'
-    elif ext == '.pdf':
+    elif ext.lower() == '.pdf':
         # Load .PDF document
         print(f'Load PDF document {file} ...')
         loader = PyMuPDFLoader(file)
@@ -152,7 +170,7 @@ for file in files.split(','):
         doc_pages = text_splitter.split_documents(documents)
         pages.extend(doc_pages)
         assert len(pages) > 0, f'No content is loaded yet. Please check document {file}'
-    elif ext == '.docx':
+    elif ext.lower() == '.docx':
         # Load Word document
         print(f'Load Word document {file} ...')
         loader = Docx2txtLoader(file_path=file)
@@ -161,7 +179,7 @@ for file in files.split(','):
         doc_pages = text_splitter.split_documents(documents)
         pages.extend(doc_pages)
         assert len(pages) > 0, f'No content is loaded yet. Please check document {file}'
-    elif ext == '.csv':
+    elif ext.lower() == '.csv':
         # Load CSV document
         print(f'Load CSV document {file} ...')
         loader = CSVLoader(file_path=file, encoding='utf-8')
@@ -416,7 +434,7 @@ async def save_config(options: ModelSelect):
 
 
 @app.post("/api/upload-documents")
-async def upload_documents(documents: List[UploadFile] = File(...), system_prompt: str = Form(...)):
+async def upload_documents(documents: List[UploadFile] = File(...), system_prompt: str = Form(...), document_list: str = Form(...)):
     try:
         # Validate that at least one document is uploaded
         if not documents:
@@ -436,12 +454,16 @@ async def upload_documents(documents: List[UploadFile] = File(...), system_promp
                 f.write(await document.read())  # Save the uploaded file content
             file_names.append(document.filename)
 
+        # Update the document list
+        document_list = document_list.split(',') if document_list else []
+        # You can further process the document_list here, like removing duplicates
+
         # Load the original TOML file with tomlkit to preserve structure and comments
         with open(os.path.join(app_root, "backend", "dyn_config.toml"), "r", encoding="utf-8") as f:
             dyn_config = tomlkit.parse(f.read())
 
         # Update the TOML structure with new values
-        dyn_config['Knowledge']['DOCUMENTS'] = ','.join(file_names)
+        dyn_config['Knowledge']['DOCUMENTS'] = ','.join(document_list)
         dyn_config['Knowledge']['ROBOT_DESC'] = system_prompt.strip()
 
         # Write the updated TOML back to the file
