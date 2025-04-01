@@ -349,12 +349,26 @@ function addDocuments() {
         // Read the file content and store it for future use
         const reader = new FileReader();
         reader.onload = (event) => {
+            const fileContent = event.target.result;
             selectedDocumentsContent.push({
                 name: file.name,
-                content: event.target.result
+                content: fileContent,
+                type: file.type // 存储文件类型
             });
         };
-        reader.readAsText(file); // Read the file as text
+
+        if (file.type === 'application/pdf'  || file.type === 'application/msword'
+            || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            || file.type === 'text/csv'
+            || file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            || file.type === 'application/vnd.ms-excel'
+            || file.type === 'application/vnd.ms-powerpoint'
+            || file.type === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') {
+            reader.readAsArrayBuffer(file); // 以二进制方式读取 PDF 文件
+        } else {
+            reader.readAsText(file); // Read the file as text
+        }
+
         enableSaveButton('knowledge-tab');
     });
 
@@ -411,8 +425,27 @@ function saveKnowledgeBase() {
         accumulatedFilePaths.forEach(filePath => {
             const matchingFile = selectedDocumentsContent.find(doc => doc.name === filePath);
             if (matchingFile) {
-                const fileContent = new Blob([matchingFile.content], { type: 'text/plain' });
-                formData.append('documents', new File([fileContent], filePath));
+                let fileBlob;
+                if (matchingFile.type === 'application/pdf') {
+                    fileBlob = new Blob([matchingFile.content], { type: 'application/pdf' });
+                } else if (matchingFile.type === 'application/msword') {
+                    fileBlob = new Blob([matchingFile.content], { type: 'application/msword' });
+                } else if (matchingFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                    fileBlob = new Blob([matchingFile.content], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+                } else if (matchingFile.type === 'text/csv') {
+                    fileBlob = new Blob([matchingFile.content], { type: 'text/csv' });
+                } else if (matchingFile.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+                    fileBlob = new Blob([matchingFile.content], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                } else if (matchingFile.type === 'application/vnd.ms-excel') {
+                    fileBlob = new Blob([matchingFile.content], { type: 'application/vnd.ms-excel' });
+                } else if (matchingFile.type === 'application/vnd.ms-powerpoint') {
+                    fileBlob = new Blob([matchingFile.content], { type: 'application/vnd.ms-powerpoint' });
+                } else if (matchingFile.type === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') {
+                    fileBlob = new Blob([matchingFile.content], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
+                } else {
+                    fileBlob = new Blob([matchingFile.content], { type: 'text/plain' });
+                }
+                formData.append('documents', new File([fileBlob], filePath));
             }
         });
 
