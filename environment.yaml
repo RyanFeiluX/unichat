@@ -79,6 +79,7 @@ dependencies:
   - openssl=3.0.16
   - orjson=3.10.14
   - packaging=24.2
+  - pandoc=2.12
   - pefile=2023.2.7
   - pip=25.0
   - propcache=0.2.0
@@ -88,6 +89,7 @@ dependencies:
   - pyinstaller=6.6.0
   - pyinstaller-hooks-contrib=2025.1
   - pyjwt=2.10.1
+  - pypandoc=1.6.3
   - pysocks=1.7.1
   - python=3.10.16
   - python-dotenv=0.21.0
@@ -112,6 +114,7 @@ dependencies:
   - tiktoken=0.9.0
   - tk=8.6.14
   - toml=0.10.2
+  - tomlkit=0.13.2
   - tqdm=4.67.1
   - typer=0.15.2
   - typer-slim=0.15.2
@@ -147,5 +150,6 @@ dependencies:
       - openai==1.66.3
       - pydantic==2.9.2
       - pydantic-settings==2.8.1
+      - pymupdf==1.25.4
       - websocket-client==1.8.0
 prefix: D:\ProgramData\anaconda3\envs\condaenv-unichat
