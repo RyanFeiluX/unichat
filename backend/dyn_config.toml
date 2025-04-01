@@ -7,7 +7,7 @@ ROBOT_DESC="你是节拍能量技术咨询助理，随时准备回答用户的�
 ##############
 [Deployment]
 #"OPENAI","MOONSHOT","BAICHUAN","ZHIPUAI","DEEPSEEK","DASHSCOPE","OLLAMA"
-LLM_PROVIDER="OLLAMA"
+LLM_PROVIDER="Ollama"
 #The default model defined in Provider section is picked if empty here.
 # moonshot-v1-8k,moonshot-v1-32k，moonshot-v1-128k
 # Baichuan3-Turbo
@@ -17,6 +17,6 @@ LLM_PROVIDER="OLLAMA"
 # phi4:14b(Ollama Only)
 LLM_MODEL="deepseek-r1:1.5b"
 #"OPENAI","BAICHUAN","ZHIPUAI","OLLAMA"
-EMB_PROVIDER="OLLAMA"
+EMB_PROVIDER="Ollama"
 #Conditionally mandatory for Ollama.
 EMB_MODEL="deepseek-r1:1.5b"
