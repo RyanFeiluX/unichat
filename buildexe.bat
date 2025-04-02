@@ -25,29 +25,37 @@ if "%1%"=="all" (
 REM Launch pyinstaller
 pyinstaller --onedir ^
             --specpath spec ^
-            --name unichat ^
+            --name UniChat ^
             --noconfirm ^
             --collect-all pydantic ^
             --collect-submodules langchain.chains ^
             --exclude-module pyinstaller,pillow ^
-            -i %CD%\resources\icon2.ico ^
+            -i %CD%\resources\icon3.ico ^
             %script%
 
 cd %CD%
-if exist "dist\unichat\backend" (
-  rd /S /Q dist\unichat\backend
-)
-mkdir dist\unichat\backend
-if exist "backend\.env" (
-  copy %CD%\backend\.env %CD%\dist\unichat\backend
-)
+rem if exist "dist\unichat\backend" (
+rem   rd /S /Q dist\unichat\backend
+rem )
+rem mkdir dist\unichat\backend
+rem if exist "backend\.env" (
+rem   copy %CD%\backend\.env %CD%\dist\unichat\backend
+rem )
 copy %CD%\backend\sta_config.toml %CD%\dist\unichat\backend\sta_config.toml
+copy %CD%\backend\factory.toml %CD%\dist\unichat\backend\dyn_config.toml
 copy %CD%\backend\factory.toml %CD%\dist\unichat\backend\dyn_config.toml
 if exist "dist\unichat\frontend" (
   rd /S /Q dist\unichat\frontend
 )
 mkdir dist\unichat\frontend && copy frontend\* dist\unichat\frontend
-if exist "dist\unichat\docs" (
-  rd /S /Q dist\unichat\docs
+if exist "dist\unichat\resources" (
+  rd /S /Q dist\unichat\resources
 )
-mkdir dist\unichat\docs && copy docs\QA.md dist\unichat\docs\QA.md
+mkdir dist\unichat\resources && copy resources\* dist\unichat\resources
+if exist "dist\unichat\local_docs" (
+  rd /S /Q dist\unichat\local_docs
+)
+mkdir dist\unichat\local_docs && copy docs\QA.md dist\unichat\local_docs\QA.md
+
+copy %CD%\README.md %CD%\dist\unichat\README.md
+copy %CD%\LICENCE %CD%\dist\unichat\LICENCE
