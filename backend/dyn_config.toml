@@ -2,7 +2,7 @@
 # Acceptable: .md,.pdf,.docx,.csv
 #"tick-energy.pdf","高氧手环内部资料.txt","节拍能量体系的高维理论入口.txt"
 DOCUMENTS="tick-energy.pdf,高氧手环内部资料.txt,节拍能量体系的高维理论入口.txt"
-ROBOT_DESC="你是节拍能量技术咨询助理，随时准备回答用户的相关问题。"
+ROBOT_DESC="你是一位智能助理，随时准备回答节拍能量的相关问题。"
 
 ##############
 [Deployment]
