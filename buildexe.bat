@@ -1,7 +1,7 @@
 @echo off
 @chcp 65001
 REM Set the script path
-@set script=../unichat/backend/rag-service.py
+@set script=../unichat/backend/http_server.py
 
 REM Check if PyInstaller is installed
 pyinstaller --version >nul 2>&1
@@ -34,16 +34,16 @@ pyinstaller --onedir ^
             %script%
 
 cd %CD%
-rem if exist "dist\unichat\backend" (
-rem   rd /S /Q dist\unichat\backend
-rem )
-rem mkdir dist\unichat\backend
+if exist "dist\unichat\backend" (
+  rd /S /Q dist\unichat\backend
+)
+mkdir dist\unichat\backend
 rem if exist "backend\.env" (
 rem   copy %CD%\backend\.env %CD%\dist\unichat\backend
 rem )
-copy %CD%\backend\sta_config.toml %CD%\dist\unichat\backend\sta_config.toml
-copy %CD%\backend\factory.toml %CD%\dist\unichat\backend\dyn_config.toml
-copy %CD%\backend\factory.toml %CD%\dist\unichat\backend\dyn_config.toml
+copy %CD%\backend\sta_config.toml %CD%\dist\unichat\backend
+copy %CD%\backend\dyn_config.toml %CD%\dist\unichat\backend
+copy %CD%\backend\factory.toml %CD%\dist\unichat\backend
 if exist "dist\unichat\frontend" (
   rd /S /Q dist\unichat\frontend
 )
@@ -55,7 +55,7 @@ mkdir dist\unichat\resources && copy resources\* dist\unichat\resources
 if exist "dist\unichat\local_docs" (
   rd /S /Q dist\unichat\local_docs
 )
-mkdir dist\unichat\local_docs && copy docs\QA.md dist\unichat\local_docs\QA.md
+mkdir dist\unichat\local_docs && copy docs\QA.md dist\unichat\local_docs
 
-copy %CD%\README.md %CD%\dist\unichat\README.md
-copy %CD%\LICENCE %CD%\dist\unichat\LICENCE
+copy %CD%\README.md %CD%\dist\unichat
+copy %CD%\LICENSE %CD%\dist\unichat
