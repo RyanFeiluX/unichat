@@ -381,6 +381,12 @@ function deleteSelectedFile() {
     const selectedRow = document.querySelector('#selected-files tbody tr.selected');
     if (selectedRow) {
         selectedRow.remove(); // Remove the selected row
+        const fileName = selectedRow.querySelector('td').textContent;
+        // Remove the file name from accumulatedFilePaths
+        const index = accumulatedFilePaths.indexOf(fileName);
+        if (index > -1) {
+            accumulatedFilePaths.splice(index, 1);
+        }
         updateDeleteButtonState(); // Update the delete button state
     } else {
         alert('请先选择一个文档');

@@ -151,6 +151,27 @@ async def save_config(options: ModelSelect):
     return {"message": "Configuration updated successfully"}
 
 
+def remove_useless(doc_list):
+    # Get the latest document list
+    latest_documents = [doc.strip() for doc in doc_list]
+
+    # Get the path to the local_docs folder
+    local_docs_dir = os.path.join(app_root, 'local_docs')
+
+    # Get the list of all files in the local_docs folder
+    all_files = os.listdir(local_docs_dir)
+
+    # Identify the files that are not in the latest document list
+    useless_files = [file for file in all_files if file not in latest_documents]
+
+    # Remove the useless files
+    for file in useless_files:
+        file_path = os.path.join(local_docs_dir, file)
+        if os.path.isfile(file_path):
+            os.remove(file_path)
+            print(f"Removed the useless: {file_path}")
+
+
 @app.post("/api/upload-documents")
 async def upload_documents(documents: List[UploadFile] = File(...),
                            system_prompt: str = Form(...), document_list: str = Form(...)):
@@ -175,6 +196,7 @@ async def upload_documents(documents: List[UploadFile] = File(...),
 
         # Update the document list
         documents = document_list.split(',') if document_list else []
+        remove_useless(documents)
         # You can further process the document_list here, like removing duplicates
 
         # Load the original TOML file with tomlkit to preserve structure and comments
@@ -200,6 +222,7 @@ async def update_documents(system_prompt: str = Form(...), document_list: str = 
     try:
         # Update the document list
         documents = document_list.split(',') if document_list else []
+        remove_useless(documents)
         # You can further process the document_list here, like removing duplicates
 
         # Load the original TOML file with tomlkit to preserve structure and comments
