@@ -293,9 +293,6 @@ LOCAL_DOCS_DIR = os.path.join(app_root, "local_docs")
 app = FastAPI()
 app.mount('/static', StaticFiles(directory=os.path.join(app_root, 'frontend')), 'static')
 
-user_url = "http://localhost:63342/unichat/frontend/index.html"
-print(f'Please browse {user_url} for chat.')
-
 # Optional in case of CORS on frontend
 app.add_middleware(
     CORSMiddleware,
@@ -491,5 +488,18 @@ async def fetch_documents():
         raise HTTPException(status_code=500, detail=f"Error fetching documents and system prompt: {str(e)}")
 
 
+user_url = "http://localhost:63342/unichat/frontend/index.html"
+print(f'If the chat page is not opened in few seconds, please click the link {user_url} instead.')
+
+import webbrowser
+@app.on_event("startup")
+async def startup_event():
+    webbrowser.open_new_tab(user_url)
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    # 在这里执行应用关闭时需要做的操作，如关闭数据库连接等
+    print("Application shutdown")
+
 if __name__ == "__main__":
-    uvicorn.run('rag-service:app', host="127.0.0.1", port=8000)
+    uvicorn.run('rag-service:app', host="127.0.0.1", port=8000, reload=False)
