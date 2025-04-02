@@ -1,5 +1,7 @@
 BASE_URL="http://localhost:8000"
 
+marked.setOptions({sanitize: true});
+
 function sendMessage() {
     const userInput = document.getElementById('user-input').value;
     if (userInput.trim() === "") return;
@@ -45,7 +47,9 @@ function appendMessage(sender, message) {
     const chatBox = document.getElementById('chat-box');
     const messageElement = document.createElement('div');
     messageElement.className = sender;
-    messageElement.innerText = message;
+    // Use marked to render the Markdown message
+//    messageElement.innerText = message;
+    messageElement.innerHTML = marked.parse(message);
     chatBox.appendChild(messageElement);
     chatBox.scrollTop = chatBox.scrollHeight;
 }
@@ -149,27 +153,6 @@ document.addEventListener('DOMContentLoaded', () => {
 let llmModelsData = {};
 let embeddingModelsData = {};
 
-// function initializeConfig() {
-//     fetch(`${BASE_URL}/api/models/fetch`, { // Separate endpoint for fetching configurations
-//         method: 'GET'
-//     })
-//     .then(response => response.json())
-//     .then(data => {
-//         llmModelsData = data.model_support.reduce((acc, item) => {
-//             acc[item.provider] = item.llm_model.map(model => ({ value: model, label: model }));
-//             return acc;
-//         }, {});
-//         embeddingModelsData = data.model_support.reduce((acc, item) => {
-//             acc[item.provider] = item.emb_model.map(model => ({ value: model, label: model }));
-//             return acc;
-//         }, {});
-//         populateSelect('llm-provider', data.model_support.map(item => ({ value: item.provider, label: item.provider })));
-//         populateSelect('embedding-provider', data.model_support.map(item => ({ value: item.provider, label: item.provider })));
-//         loadLastSelectedConfig();
-//     })
-//     .catch(error => console.error('Error fetching config:', error));
-// }
-
 provider_intro = {}
 
 function initializeModelTab() {
@@ -223,21 +206,6 @@ function initializeModelTab() {
 
     disableSaveButton('model-tab'); // Disable save button initially
 }
-
-// function loadLastSelectedConfig() {
-//     const lastConfig = JSON.parse(localStorage.getItem('lastConfig')) || {};
-//     const llmProvider = lastConfig.llmProvider || document.getElementById('llm-provider').options[0].value;
-//     const embeddingProvider = lastConfig.embeddingProvider || document.getElementById('embedding-provider').options[0].value;
-
-//     document.getElementById('llm-provider').value = llmProvider;
-//     document.getElementById('embedding-provider').value = embeddingProvider;
-
-//     updateLlmModels();
-//     updateEmbeddingModels();
-
-//     document.getElementById('llm-model').value = lastConfig.llmModel || document.getElementById('llm-model').options[0].value;
-//     document.getElementById('embedding-model').value = lastConfig.embeddingModel || document.getElementById('embedding-model').options[0].value;
-// }
 
 function updateLlmModels() {
     const selectedProvider = document.getElementById('llm-provider').value;
@@ -575,6 +543,3 @@ function disableSaveButton(tabId) {
         saveButton.style.cursor = 'not-allowed';
     }
 }
-
-// Attach the saveKnowledgeBase function to the save button
-// document.getElementById('save-knowledge-button').addEventListener('click', saveKnowledgeBase);

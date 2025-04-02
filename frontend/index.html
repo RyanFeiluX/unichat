@@ -84,54 +84,7 @@
         </div>
     </div>
 
+    <script src="marked.min.js"></script>
     <script src="scripts.js"></script>
-    <!-- <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('config-button').addEventListener('click', openConfigModal);
-            document.getElementById('send-button').addEventListener('click', sendMessage);
-            document.getElementById('user-input').addEventListener('keydown', keyDown);
-            document.querySelector('.close').addEventListener('click', closeConfigModal);
-            document.querySelectorAll('.tab-button').forEach(button => {
-                button.addEventListener('click', () => switchTab(button.dataset.tab));
-            });
-            document.getElementById('llm-provider').addEventListener('change', () => {
-                updateLlmModels();
-                updateProviderDescription();
-            });
-            document.getElementById('embedding-provider').addEventListener('change', updateEmbeddingModels);
-            document.getElementById('add-document-button').addEventListener('click', triggerFileInput);
-            document.getElementById('delete-document-button').addEventListener('click', deleteSelectedFile);
-            document.getElementById('document-input').addEventListener('change', addDocuments);
-            document.getElementById('save-knowledge-button').addEventListener('click', saveKnowledgeBase);
-            document.querySelector('#model-tab .save-button').addEventListener('click', saveConfig);
-        });
-
-        function saveConfig() {
-            const config = {
-                llm_provider: document.getElementById('llm-provider').value,
-                llm_model: document.getElementById('llm-model').value,
-                emb_provider: document.getElementById('embedding-provider').value,
-                emb_model: document.getElementById('embedding-model').value
-            };
-
-            fetch(`${BASE_URL}/api/models`, { // Updated endpoint
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(config)
-            })
-            .then(response => {
-                if (response.ok) {
-                    alert('结果: 配置已保存');
-                    localStorage.setItem('lastConfig', JSON.stringify(config));
-                    // Do not close the modal after saving
-                } else {
-                    alert('结果: 保存配置时出错');
-                }
-            })
-            .catch(error => console.error('Error saving config:', error));
-        }
-    </script> -->
 </body>
 </html>
