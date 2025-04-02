@@ -8,10 +8,6 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 
 from rag_service import *
-# app_root = rag_service.app_root
-global dcfg, scfg
-global LOCAL_DOCS_DIR
-global msghist_chain
 
 user_url = "http://localhost:63342/unichat/frontend/index.html"
 print(f'If the chat page is not opened in few seconds, please click the link {user_url} instead.')
@@ -156,7 +152,8 @@ async def save_config(options: ModelSelect):
 
 
 @app.post("/api/upload-documents")
-async def upload_documents(documents: List[UploadFile] = File(...), system_prompt: str = Form(...), document_list: str = Form(...)):
+async def upload_documents(documents: List[UploadFile] = File(...),
+                           system_prompt: str = Form(...), document_list: str = Form(...)):
     try:
         # Validate that at least one document is uploaded
         if not documents:
@@ -177,7 +174,7 @@ async def upload_documents(documents: List[UploadFile] = File(...), system_promp
             file_names.append(document.filename)
 
         # Update the document list
-        document_list = document_list.split(',') if document_list else []
+        documents = document_list.split(',') if document_list else []
         # You can further process the document_list here, like removing duplicates
 
         # Load the original TOML file with tomlkit to preserve structure and comments
@@ -185,7 +182,32 @@ async def upload_documents(documents: List[UploadFile] = File(...), system_promp
             dyn_config = tomlkit.parse(f.read())
 
         # Update the TOML structure with new values
-        dyn_config['Knowledge']['DOCUMENTS'] = ','.join(document_list)
+        dyn_config['Knowledge']['DOCUMENTS'] = ','.join(documents)
+        dyn_config['Knowledge']['ROBOT_DESC'] = system_prompt.strip()
+
+        # Write the updated TOML back to the file
+        with open(os.path.join(app_root, "backend", "dyn_config.toml"), "w", encoding="utf-8") as f:
+            f.write(tomlkit.dumps(dyn_config))
+            f.flush()
+
+        return {"message": "Documents and system prompt uploaded and saved successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Error uploading documents or saving system prompt: {str(e)}")
+
+
+@app.post("/api/documents")
+async def update_documents(system_prompt: str = Form(...), document_list: str = Form(...)):
+    try:
+        # Update the document list
+        documents = document_list.split(',') if document_list else []
+        # You can further process the document_list here, like removing duplicates
+
+        # Load the original TOML file with tomlkit to preserve structure and comments
+        with open(os.path.join(app_root, "backend", "dyn_config.toml"), "r", encoding="utf-8") as f:
+            dyn_config = tomlkit.parse(f.read())
+
+        # Update the TOML structure with new values
+        dyn_config['Knowledge']['DOCUMENTS'] = ','.join(documents)
         dyn_config['Knowledge']['ROBOT_DESC'] = system_prompt.strip()
 
         # Write the updated TOML back to the file

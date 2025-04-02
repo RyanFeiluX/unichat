@@ -296,10 +296,6 @@ function saveModelConfig() {
     .then(response => {
         if (response.ok) {
             alert('结果: 模型配置已保存');
-            // const saveButton = document.querySelector('#model-tab .save-button');
-            // saveButton.disabled = true; // Disable the save button
-            // saveButton.style.backgroundColor = '#6c757d'; // Gray color for disabled state
-            // saveButton.style.cursor = 'not-allowed';
             disableSaveButton('model-tab'); // Disable save button after saving
         } else {
             alert('结果: 保存模型配置时出错');
@@ -417,11 +413,8 @@ function saveKnowledgeBase() {
             throw new Error('请至少选择一个文档或确保已添加文档路径。');
         }
 
-        // Append files to FormData
-        Array.from(input.files).forEach(file => {
-            formData.append('documents', file);
-        });
-
+        // Append file content to FormData
+        let docCnt = 0;
         accumulatedFilePaths.forEach(filePath => {
             const matchingFile = selectedDocumentsContent.find(doc => doc.name === filePath);
             if (matchingFile) {
@@ -446,6 +439,7 @@ function saveKnowledgeBase() {
                     fileBlob = new Blob([matchingFile.content], { type: 'text/plain' });
                 }
                 formData.append('documents', new File([fileBlob], filePath));
+                docCnt = docCnt + 1;
             }
         });
 
@@ -458,27 +452,33 @@ function saveKnowledgeBase() {
         // Append the new document list to the form data
         formData.append('document_list', accumulatedFilePaths.join(','));
 
-        fetch(`${BASE_URL}/api/upload-documents`, {
+        if(docCnt > 0) {
+            path_sufix = 'upload-documents'
+            target_cn = '文档和系统提示词'
+            target_en = 'documents and system prompt'
+        } else {
+            path_sufix = 'documents'
+            target_cn = '文档清单和系统提示词'
+            target_en = 'documents list and system prompt'
+        }
+        fetch(`${BASE_URL}/api/${path_sufix}`, {
             method: 'POST',
             body: formData
         })
         .then(response => {
             if (response.ok) {
-                alert('文档和系统提示词已成功上传到服务器并保存。');
-                // const saveButton = document.getElementById('save-knowledge-button');
-                // saveButton.disabled = true; // Disable the save button
-                // saveButton.style.backgroundColor = '#6c757d'; // Gray color for disabled state
-                // saveButton.style.cursor = 'not-allowed';
+                selectedDocumentsContent = []
+                alert(`${target_cn}已成功上传到服务器并保存。`);
                 disableSaveButton('knowledge-tab'); // Disable save button after saving
             } else {
                 response.text().then(errorText => {
-                    throw new Error(`Failed to upload documents and system prompt to the server. ${errorText}`);
+                    throw new Error(`Failed to upload ${target_en} to the server. ${errorText}`);
                 });
             }
         })
         .catch(error => {
             console.error('Error during document upload:', error);
-            alert(`上传文档和系统提示词时出错: ${error.message}`);
+            alert(`上传文档(清单)和系统提示词时出错: ${error.message}`);
         });
     } catch (error) {
         console.error('Error:', error);
