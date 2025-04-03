@@ -1,6 +1,12 @@
 import logging
 
+logger = None
+
 def setup_logging(logfile_path = None):
+    global logger
+    if logger:
+        return logger
+
     # Create a logger
     logger = logging.getLogger('shared_logger')
     logger.setLevel(logging.DEBUG)
