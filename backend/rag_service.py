@@ -27,11 +27,13 @@ from langchain_text_splitters.markdown import MarkdownTextSplitter
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
+from pypandoc import convert_file as cvt_doctype
 # from starlette.middleware.cors import CORSMiddleware
 # from starlette.staticfiles import StaticFiles
-from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction
-from PyQt5.QtGui import QIcon
-import threading
+from logging_config import setup_logging
+
+# Configure logging
+logger = setup_logging('run.log')
 
 print(f'python version : {sys.version}')
 global app_root
@@ -46,18 +48,31 @@ print(f'APP ROOT: {app_root}')
 # Load env variables from local .env file. Several parameters are there, including API_KEY.
 dotenv_path = find_dotenv(filename='.env', raise_error_if_not_found=False)
 if dotenv_path:
-    print(f'dotenv={dotenv_path}')
+    logger.info(f'dotenv={dotenv_path}')
     _ = load_dotenv(dotenv_path=os.path.abspath(dotenv_path))
+else:
+    logger.info(f'No dotenv found')
+
+scfg_path = os.path.join(app_root, "backend", "sta_config.toml")
+dcfg_path = os.path.join(app_root, "backend", "dyn_config.toml")
+if not os.path.exists(scfg_path):
+    logger.error(f"Could not find {scfg_path}")
+if not os.path.exists(dcfg_path):
+    logger.error(f"Could not find {dcfg_path}")
 
 # Load config parameters
-scfg = toml.load(os.path.join(app_root, "backend", "sta_config.toml"))
-dcfg = toml.load(os.path.join(app_root, "backend", "dyn_config.toml"))
+scfg = toml.load(scfg_path)
+dcfg = toml.load(dcfg_path)
+
+factory_cfg_path = os.path.join(app_root, "backend", "factory.toml")
+if not os.path.exists(factory_cfg_path):
+    logger.error(f"Could not find {factory_cfg_path}")
 
 # Load factory defaults
-factory_cfg = toml.load(os.path.join(app_root, "backend", "factory.toml"))
+factory_cfg = toml.load(factory_cfg_path)
 
 # Merge dcfg with factory_cfg for missing or empty fields
-def merge_with_factory_config(target_cfg, source_cfg):
+def merge_config(target_cfg, source_cfg):
     """
     Merge the target configuration with the factory defaults.
 
@@ -74,7 +89,7 @@ def merge_with_factory_config(target_cfg, source_cfg):
         elif isinstance(values, dict):
             if section not in source_cfg:
                 continue
-            merge_with_factory_config(values, source_cfg[section])
+            merge_config(values, source_cfg[section])
         elif isinstance(values, list):
             if section not in source_cfg:
                 continue
@@ -88,12 +103,12 @@ def merge_with_factory_config(target_cfg, source_cfg):
 
 
 # Ensure dynamic configuration is merged with factory defaults
-merge_with_factory_config(dcfg, factory_cfg)
+merge_config(dcfg, factory_cfg)
 
 # llm
 llm_provider = dcfg['Deployment']['LLM_PROVIDER'].upper()  # os.getenv("LLM_PROVIDER")
 if llm_provider:
-    print(f'LLM provider : {llm_provider}')
+    logger.info(f'LLM provider : {llm_provider}')
     # llm_model = os.getenv("LLM_MODEL") or os.getenv(f'{llm_provider}_LLM_MODEL')
     llm_model = (dcfg['Deployment']['LLM_MODEL']
                  or scfg['Providers'][llm_provider][f'{llm_provider}_LLM_MODEL'].split(',')[0])
@@ -126,68 +141,70 @@ files: str = dcfg['Knowledge']['DOCUMENTS']  # os.getenv("DOCUMENTS")
 robot_desc: str = dcfg['Knowledge']['ROBOT_DESC']  # os.getenv("ROBOT_DESC")
 pages = []
 for file in files.split(','):
-    file = os.path.abspath(os.path.join(app_root, 'local_docs', file.strip()))
-    bn, ext = os.path.splitext(file)
+    file_path = os.path.abspath(os.path.join(app_root, 'local_docs', file.strip()))
+    if not os.path.exists(file_path):
+        logger.warn(f'{file_path} does not exist and be ignored.')
+        continue
+    bn, ext = os.path.splitext(file_path)
     if ext.lower() == '.md':
         # Considering of loading markdown needing NLTK data. It makes it complicated. Here a workaround
         # is that markdown files are firstly converted to Word and then loaded as Word documents.
-        from pypandoc import convert_file as cvt_doctype
         if os.path.exists('temp'):
             shutil.rmtree('temp')
         os.makedirs('temp')
-        temp_file = os.path.join('temp', os.path.split(file)[1])
+        temp_file = os.path.join('temp', os.path.split(file_path)[1])
         temp_file = os.path.splitext(temp_file)[0] + '.docx'
-        cvt_doctype(file, 'docx', outputfile=temp_file)
+        cvt_doctype(file_path, 'docx', outputfile=temp_file)
         ext = '.docx'
-        file = temp_file
+        file_path = temp_file
 
     if ext.lower() == '.txt':
         # Load .txt document
-        print(f'Load text document {file} ...')
-        loader = TextLoader(file, encoding='utf-8', autodetect_encoding=True)
+        print(f'Load text document {file_path} ...')
+        loader = TextLoader(file_path, encoding='utf-8', autodetect_encoding=True)
         documents = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=20)
         pages.extend(text_splitter.split_documents(documents))
-        assert len(pages) > 0, f'No content is loaded yet. Please check document {file}'
+        assert len(pages) > 0, f'No content is loaded yet. Please check document {file_path}'
     elif ext.lower() == '.md':
         # Load .MD document
-        print(f'Load markdown document {file} ...')
+        print(f'Load markdown document {file_path} ...')
         try:
-            loader = UnstructuredMarkdownLoader(file, mode='elements', autodetect_coding=True, strategy="fast",)
+            loader = UnstructuredMarkdownLoader(file_path, mode='elements', autodetect_coding=True, strategy="fast", )
         except Exception as e:
-            raise RuntimeError(f'Loading {file} failed. {repr(e)}')
+            raise RuntimeError(f'Loading {file_path} failed. {repr(e)}')
         documents = loader.load()
         text_splitter = MarkdownTextSplitter.from_language(language=Language("markdown"),
                                                            chunk_size=300, chunk_overlap=20)
         pages.extend(text_splitter.split_documents(documents))
-        assert len(pages) > 0, f'No content is loaded yet. Please check document {file}'
+        assert len(pages) > 0, f'No content is loaded yet. Please check document {file_path}'
     elif ext.lower() == '.pdf':
         # Load .PDF document
-        print(f'Load PDF document {file} ...')
-        loader = PyMuPDFLoader(file)
+        print(f'Load PDF document {file_path} ...')
+        loader = PyMuPDFLoader(file_path)
         documents = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=20)
         doc_pages = text_splitter.split_documents(documents)
         pages.extend(doc_pages)
-        assert len(pages) > 0, f'No content is loaded yet. Please check document {file}'
+        assert len(pages) > 0, f'No content is loaded yet. Please check document {file_path}'
     elif ext.lower() == '.docx':
         # Load Word document
-        print(f'Load Word document {file} ...')
-        loader = Docx2txtLoader(file_path=file)
+        print(f'Load Word document {file_path} ...')
+        loader = Docx2txtLoader(file_path=file_path)
         documents = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=20)
         doc_pages = text_splitter.split_documents(documents)
         pages.extend(doc_pages)
-        assert len(pages) > 0, f'No content is loaded yet. Please check document {file}'
+        assert len(pages) > 0, f'No content is loaded yet. Please check document {file_path}'
     elif ext.lower() == '.csv':
         # Load CSV document
-        print(f'Load CSV document {file} ...')
-        loader = CSVLoader(file_path=file, encoding='utf-8')
+        print(f'Load CSV document {file_path} ...')
+        loader = CSVLoader(file_path=file_path, encoding='utf-8')
         documents = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=20)
         doc_pages = text_splitter.split_documents(documents)
         pages.extend(doc_pages)
-        assert len(pages) > 0, f'No content is loaded yet. Please check document {file}'
+        assert len(pages) > 0, f'No content is loaded yet. Please check document {file_path}'
     else:
         raise RuntimeWarning(f'File type {ext} is not supported yet.')
 

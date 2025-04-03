@@ -6,8 +6,22 @@ import tomlkit  # Import tomlkit for round-trip parsing
 from typing import List, Dict, Union
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
+from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction
+from PyQt5.QtGui import QIcon
+import threading
+import win32gui
+import win32con
+from logging_config import setup_logging
+
+# Configure logging
+logger = setup_logging('run.log')
 
 from rag_service import *
+
+# # Hide the console window on Windows
+# if os.name == 'nt':
+#     hwnd = win32gui.GetForegroundWindow()
+#     win32gui.ShowWindow(hwnd, win32con.SW_HIDE)
 
 user_url = "http://localhost:63342/unichat/frontend/index.html"
 print(f'If the chat page is not opened in few seconds, please click the link {user_url} instead.')
@@ -74,19 +88,19 @@ async def ask_question(request: QuestionRequest):
         answer = AnswerResponse(answer=final_answer)
         print(f'answer:{summing}')
         return answer
-    except Exception as e:
-        print(f'{repr(e)}')
-        m_code = re.match(r'(.*Response \[(\d+)\].*|.*Error code: (\d+).*|.*status_code: (\d+).*)', str(e))
+    except Exception as ee:
+        logger.error(f'{repr(ee)}')
+        m_code = re.match(r'(.*Response \[(\d+)\].*|.*Error code: (\d+).*|.*status_code: (\d+).*)', str(ee))
         if m_code:
             status_code = sum([int(i) for i in m_code.groups()[1:] if i])
         else:
             status_code = 500
-        raise HTTPException(status_code=status_code, detail=str(e))
+        raise HTTPException(status_code=status_code, detail=str(ee))
 
 
 @app.get('/')
 async def get_root():
-    return {'message': 'Hello UniChat'}
+    return {'message': 'Hello UniChat!'}
 
 
 class ModelSelect(BaseModel):
@@ -98,8 +112,8 @@ class ModelSelect(BaseModel):
 
 @app.get("/api")
 async def fetch_any():
-    print(f'GET: /api')
-    return {'API': 'config'}
+    # print(f'GET: /api')
+    return {'API': ['models', 'documents', 'upload-documents']}
 
 class ModelConfig(BaseModel):
     model_support: List[Dict[str, Union[str, List[str]]]]
@@ -109,7 +123,7 @@ class ModelConfig(BaseModel):
 # API for http://127.0.0.1:8000/api/models
 @app.get("/api/models", response_model=ModelConfig)  # Updated endpoint
 async def fetch_config():
-    print(f'GET: /api/models')
+    # print(f'GET: /api/models')
     options: list = []
     for p in scfg['Providers'].keys():
         options.append({'provider': p,
@@ -127,7 +141,7 @@ async def fetch_config():
 # API for http://127.0.0.1:8000/api/models
 @app.put("/api/models")  # Updated endpoint
 async def save_config(options: ModelSelect):
-    print(f'PUT: /api/models')
+    # print(f'PUT: /api/models')
     dcfg['Deployment']['LLM_PROVIDER'] = options.llm_provider
     dcfg['Deployment']['LLM_MODEL'] = options.llm_model
     dcfg['Deployment']['EMB_PROVIDER'] = options.emb_provider
@@ -162,11 +176,11 @@ def remove_useless(doc_list):
     all_files = os.listdir(local_docs_dir)
 
     # Identify the files that are not in the latest document list
-    useless_files = [file for file in all_files if file not in latest_documents]
+    useless_files = [f for f in all_files if f not in latest_documents]
 
     # Remove the useless files
-    for file in useless_files:
-        file_path = os.path.join(local_docs_dir, file)
+    for f in useless_files:
+        file_path = os.path.join(local_docs_dir, f)
         if os.path.isfile(file_path):
             os.remove(file_path)
             print(f"Removed the useless: {file_path}")
@@ -213,8 +227,8 @@ async def upload_documents(documents: List[UploadFile] = File(...),
             f.flush()
 
         return {"message": "Documents and system prompt uploaded and saved successfully."}
-    except Exception as e:
-        raise HTTPException(status_code=422, detail=f"Error uploading documents or saving system prompt: {str(e)}")
+    except Exception as ee:
+        raise HTTPException(status_code=422, detail=f"Error uploading documents or saving system prompt: {str(ee)}")
 
 
 @app.post("/api/documents")
@@ -239,8 +253,8 @@ async def update_documents(system_prompt: str = Form(...), document_list: str = 
             f.flush()
 
         return {"message": "Documents and system prompt uploaded and saved successfully."}
-    except Exception as e:
-        raise HTTPException(status_code=422, detail=f"Error uploading documents or saving system prompt: {str(e)}")
+    except Exception as ee:
+        raise HTTPException(status_code=422, detail=f"Error uploading documents or saving system prompt: {str(ee)}")
 
 
 @app.get("/api/documents")
@@ -254,8 +268,8 @@ async def fetch_documents():
             "documents": documents,
             "system_prompt": system_prompt
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching documents and system prompt: {str(e)}")
+    except Exception as ee:
+        raise HTTPException(status_code=500, detail=f"Error fetching documents and system prompt: {str(ee)}")
 
 import webbrowser
 @app.on_event("startup")
@@ -265,7 +279,16 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     # 在这里执行应用关闭时需要做的操作，如关闭数据库连接等
-    print("Application shutdown")
+    logger("Application shutdown")
+
+
+# Function to start the uvicorn server
+server = None
+def start_server():
+    global server
+    # uvicorn.run(app, host="127.0.0.1", port=8000)
+    server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=8000))
+    server.run()
 
 
 # Function to stop the uvicorn server and quit the application
@@ -275,8 +298,58 @@ def exit_app():
     # Since uvicorn does not have a built - in way to stop the server from another thread,
     # you can use a more complex solution like a signal or a flag to stop the server
     # For simplicity, we just quit the QApplication here
-    app.quit()
+    # app.quit()
+    global server
+    if server:
+        server.should_exit = True
+        server.force_exit = True
+    sys.exit(0)
 
+
+# Function to create and show the system tray icon
+def create_system_tray():
+    qapp = QApplication(sys.argv)
+
+    # Create a system tray icon
+    tray_icon = QSystemTrayIcon(QIcon("resources/icon3.png"), qapp)
+    tray_icon.setToolTip("UniChat is running")
+
+    # Create a menu for the system tray icon
+    menu = QMenu()
+    exit_action = QAction("Exit", menu)
+    exit_action.triggered.connect(exit_app)
+    menu.addAction(exit_action)
+
+    tray_icon.setContextMenu(menu)
+    tray_icon.show()
+
+    sys.exit(qapp.exec_())
+
+# Signal handler
+def signal_handler(sig, frame):
+    _, _ = sig, frame
+    logger('You pressed Ctrl+C! Exiting...')
+    exit_app()
+
+import signal
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
+
+import time
 if __name__ == "__main__":
-    uvicorn.run('http_server:app', host="127.0.0.1", port=8000, reload=False)
+    # uvicorn.run('http_server:app', host="127.0.0.1", port=8000, reload=False)
+    # Start the server in a separate thread
+    server_thread = threading.Thread(target=start_server)
+    server_thread.daemon = True
+    server_thread.start()
+    server_thread.join()
 
+    # Create and show the system tray icon
+    create_system_tray()
+
+    # Keep the main thread alive
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        logger("Exiting application...")
