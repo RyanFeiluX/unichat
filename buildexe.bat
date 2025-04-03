@@ -22,14 +22,18 @@ if "%1%"=="all" (
   rd /S /Q build
 )
 
+set cenv_root="d:\programdata\anaconda3\envs\condaenv-unichat"
+
 REM Launch pyinstaller
 pyinstaller --onedir ^
             --specpath spec ^
             --name UniChat ^
             --noconfirm ^
-            --collect-all pydantic ^
+            --add-binary "%cenv_root%\Scripts\pandoc.exe:bin" ^
+            --collect-submodules pydantic ^
             --collect-submodules langchain.chains ^
-            --exclude-module pyinstaller,pillow ^
+            --exclude-module pyinstaller ^
+            --exclude-module pillow ^
             -i %CD%\resources\icon3.ico ^
             %script%
 
@@ -44,14 +48,19 @@ rem )
 copy %CD%\backend\sta_config.toml %CD%\dist\unichat\backend
 copy %CD%\backend\dyn_config.toml %CD%\dist\unichat\backend
 copy %CD%\backend\factory.toml %CD%\dist\unichat\backend
+python reset_config.py --dynamic-config %CD%\dist\unichat\backend\dyn_config.toml ^
+                       --factory-config %CD%\dist\unichat\backend\factory.toml
+
 if exist "dist\unichat\frontend" (
   rd /S /Q dist\unichat\frontend
 )
 mkdir dist\unichat\frontend && copy frontend\* dist\unichat\frontend
+
 if exist "dist\unichat\resources" (
   rd /S /Q dist\unichat\resources
 )
 mkdir dist\unichat\resources && copy resources\* dist\unichat\resources
+
 if exist "dist\unichat\local_docs" (
   rd /S /Q dist\unichat\local_docs
 )
