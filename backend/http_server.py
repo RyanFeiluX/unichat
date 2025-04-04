@@ -311,17 +311,21 @@ def create_system_tray():
     qapp = QApplication(sys.argv)
 
     # Create a system tray icon
-    tray_icon = QSystemTrayIcon(QIcon("resources/icon3.png"), qapp)
-    tray_icon.setToolTip("UniChat is running")
+    icon_path = "resources/icon3.png"
+    if not os.path.exists(icon_path):
+        logger.error(f"Icon file {icon_path} not found.")
+    else:
+        tray_icon = QSystemTrayIcon(QIcon(icon_path), qapp)
+        tray_icon.setToolTip("UniChat is running")
 
-    # Create a menu for the system tray icon
-    menu = QMenu()
-    exit_action = QAction("Exit", menu)
-    exit_action.triggered.connect(exit_app)
-    menu.addAction(exit_action)
+        # Create a menu for the system tray icon
+        menu = QMenu()
+        exit_action = QAction("Exit", menu)
+        exit_action.triggered.connect(exit_app)
+        menu.addAction(exit_action)
 
-    tray_icon.setContextMenu(menu)
-    tray_icon.show()
+        tray_icon.setContextMenu(menu)
+        tray_icon.show()
 
     sys.exit(qapp.exec_())
 
@@ -342,10 +346,11 @@ if __name__ == "__main__":
     server_thread = threading.Thread(target=start_server)
     server_thread.daemon = True
     server_thread.start()
-    server_thread.join()
 
     # Create and show the system tray icon
     create_system_tray()
+
+    server_thread.join()
 
     # Keep the main thread alive
     try:
