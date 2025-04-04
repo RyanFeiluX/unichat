@@ -1,0 +1,12 @@
+Version: 0.0.1.2
+CompanyName: Ryan Xiao
+FileDescription: Universal chat solution
+InternalName: unichat
+LegalCopyright: © Ryan Xiao. All rights reserved.
+OriginalFilename: UniChat.exe
+ProductName: UniChat
+Translation:
+  - langID: 0
+    charsetID: 1200
+  - langID: 1033
+    charsetID: 1252

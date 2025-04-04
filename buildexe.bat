@@ -22,6 +22,8 @@ if "%1%"=="all" (
   rd /S /Q build
 )
 
+pyivf-make_version --source-format yaml --metadata-source metadata.yml --outfile version_info.txt
+
 set cenv_root="d:\programdata\anaconda3\envs\condaenv-unichat"
 
 REM Launch pyinstaller
@@ -34,7 +36,8 @@ pyinstaller --onedir ^
             --collect-submodules langchain.chains ^
             --exclude-module pyinstaller ^
             --exclude-module pillow ^
-            -i %CD%\resources\icon3.ico ^
+            --icon %CD%\resources\icon3.ico ^
+            --version-file %CD%\version_info.txt ^
             %script%
 
 cd %CD%

@@ -35,7 +35,7 @@ from logging_config import setup_logging
 # Configure logging
 logger = setup_logging('run.log')
 
-print(f'python version : {sys.version}')
+logger.info(f'python version : {sys.version}')
 global app_root
 if getattr(sys, 'frozen', False):
     # 如果是PyInstaller打包的exe
@@ -112,13 +112,13 @@ if llm_provider:
     # llm_model = os.getenv("LLM_MODEL") or os.getenv(f'{llm_provider}_LLM_MODEL')
     llm_model = (dcfg['Deployment']['LLM_MODEL']
                  or scfg['Providers'][llm_provider][f'{llm_provider}_LLM_MODEL'].split(',')[0])
-    print(f'LLM model : {llm_model}')
+    logger.info(f'LLM model : {llm_model}')
 else:
     llm_provider = 'OPENAI'
-    print(f'LLM provider : {llm_provider} picked by default.')
+    logger.info(f'LLM provider : {llm_provider} picked by default.')
     # llm_model = os.getenv(f'{llm_provider}_LLM_MODEL')
     llm_model = scfg['Deployment'][llm_provider][f'{llm_provider}_LLM_MODEL'].split(',')[0]
-    print(f'LLM model : {llm_model}')
+    logger.info(f'LLM model : {llm_model}')
 if llm_provider == 'OPENAI':
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
 elif llm_provider == 'MOONSHOT':
@@ -160,7 +160,7 @@ for file in files.split(','):
 
     if ext.lower() == '.txt':
         # Load .txt document
-        print(f'Load text document {file_path} ...')
+        logger.info(f'Load text document {file_path} ...')
         loader = TextLoader(file_path, encoding='utf-8', autodetect_encoding=True)
         documents = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=20)
@@ -168,7 +168,7 @@ for file in files.split(','):
         assert len(pages) > 0, f'No content is loaded yet. Please check document {file_path}'
     elif ext.lower() == '.md':
         # Load .MD document
-        print(f'Load markdown document {file_path} ...')
+        logger.info(f'Load markdown document {file_path} ...')
         try:
             loader = UnstructuredMarkdownLoader(file_path, mode='elements', autodetect_coding=True, strategy="fast", )
         except Exception as e:
@@ -180,7 +180,7 @@ for file in files.split(','):
         assert len(pages) > 0, f'No content is loaded yet. Please check document {file_path}'
     elif ext.lower() == '.pdf':
         # Load .PDF document
-        print(f'Load PDF document {file_path} ...')
+        logger.info(f'Load PDF document {file_path} ...')
         loader = PyMuPDFLoader(file_path)
         documents = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=20)
@@ -189,7 +189,7 @@ for file in files.split(','):
         assert len(pages) > 0, f'No content is loaded yet. Please check document {file_path}'
     elif ext.lower() == '.docx':
         # Load Word document
-        print(f'Load Word document {file_path} ...')
+        logger.info(f'Load Word document {file_path} ...')
         loader = Docx2txtLoader(file_path=file_path)
         documents = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=20)
@@ -198,7 +198,7 @@ for file in files.split(','):
         assert len(pages) > 0, f'No content is loaded yet. Please check document {file_path}'
     elif ext.lower() == '.csv':
         # Load CSV document
-        print(f'Load CSV document {file_path} ...')
+        logger.info(f'Load CSV document {file_path} ...')
         loader = CSVLoader(file_path=file_path, encoding='utf-8')
         documents = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=20)
@@ -222,14 +222,14 @@ for j, t in enumerate(texts):
 
 emb_provider = dcfg['Deployment']['EMB_PROVIDER'].upper()  # os.getenv('EMB_PROVIDER')
 if emb_provider:
-    print(f'Embedding provider : {emb_provider}')
+    logger.info(f'Embedding provider : {emb_provider}')
     emb_model = dcfg['Deployment']['EMB_MODEL']  # os.getenv(f"EMB_MODEL")
-    print(f'Embedding model : {emb_model}')
+    logger.info(f'Embedding model : {emb_model}')
 else:
     emb_provider = 'OPENAI'
-    print(f'Embedding provider : {emb_provider} picked by default.')
+    logger.info(f'Embedding provider : {emb_provider} picked by default.')
     emb_model = dcfg['Deployment'][f"{emb_provider}_EMB_MODEL"]  # os.getenv(f"{emb_provider}_EMB_MODEL")
-    print(f'Embedding model : {emb_model}')
+    logger.info(f'Embedding model : {emb_model}')
 if emb_provider == 'OPENAI':
     embeddings = OpenAIEmbeddings(model=emb_model)  # "text-embedding-ada-002"
 elif emb_provider == 'BAICHUAN':
@@ -237,7 +237,7 @@ elif emb_provider == 'BAICHUAN':
 elif emb_provider == 'ZHIPUAI':
     embeddings = ZhipuAIEmbeddings()  # 'glm-3-turbo'
 elif emb_provider.startswith('OLLAMA'):  # This branch is handled specially.
-    print(f'NOTE: You have chosen Ollama as embedding framework. Please run up Ollama locally beforehand.')
+    logger.info(f'NOTE: You have chosen Ollama as embedding framework. Please run up Ollama locally beforehand.')
     assert emb_model, f'One model must be specified in case of Ollama for embedding.'
     embeddings = OllamaEmbeddings(model=emb_model)
 else:

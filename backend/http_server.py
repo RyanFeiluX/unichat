@@ -1,4 +1,5 @@
 import os, re
+import yaml
 from pydantic import BaseModel
 import uvicorn
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
@@ -17,6 +18,16 @@ from logging_config import setup_logging
 logger = setup_logging('run.log')
 
 from rag_service import *
+
+try:
+    # 打开并读取.yml文件
+    with open(os.path.join(app_root, 'metadata.yml'), 'r') as file:
+        metadata = yaml.safe_load(file)
+    version = metadata['Version'].strip()
+    logger.info(f'App version: {version}')
+except FileNotFoundError:
+    version = 'Unknown'
+    logger.warning('Version file not found. Using "Unknown" as version number.')
 
 # # Hide the console window on Windows
 # if os.name == 'nt':
@@ -303,6 +314,9 @@ def exit_app():
     if server:
         server.should_exit = True
         server.force_exit = True
+    qapp = QApplication.instance()
+    if qapp:
+        qapp.quit()
     sys.exit(0)
 
 
@@ -311,7 +325,7 @@ def create_system_tray():
     qapp = QApplication(sys.argv)
 
     # Create a system tray icon
-    icon_path = "resources/icon3.png"
+    icon_path = os.path.join(app_root, "resources", "icon3.png")
     if not os.path.exists(icon_path):
         logger.error(f"Icon file {icon_path} not found.")
     else:
