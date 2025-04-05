@@ -2,7 +2,7 @@
 
 ; HM NIS Edit Wizard helper defines
 !define PRODUCT_NAME "UniChat"
-!define PRODUCT_VERSION "0.0.4"
+!define PRODUCT_VERSION "0.0.1.2"
 !define PRODUCT_PUBLISHER "Ryan Xiao"
 !define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\UniChat.exe"
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
@@ -54,7 +54,7 @@ var ICONS_GROUP
 ; MUI end ------
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
-OutFile "Setup.exe"
+OutFile "unichatSetup.exe"
 InstallDir "$PROGRAMFILES\UniChat"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
@@ -81,6 +81,8 @@ Section "MainSection" SEC01
   File "dist\UniChat\local_docs\QA.md"
   SetOutPath "$INSTDIR"
   File "dist\UniChat\README.md"
+  SetOutPath "$INSTDIR"
+  File "dist\UniChat\metadata.yml"
   SetOutPath "$INSTDIR\resources"
   File "dist\UniChat\resources\gear-icon.png"
   File "dist\UniChat\resources\icon1.ico"
