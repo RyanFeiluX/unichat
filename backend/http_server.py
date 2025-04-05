@@ -10,10 +10,11 @@ from starlette.staticfiles import StaticFiles
 from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction
 from PyQt5.QtGui import QIcon
 import threading
+import webbrowser
 import signal
-import win32gui
-import win32con
+import win32gui, win32api, win32con
 from logging_config import setup_logging
+import time
 
 # Configure logging
 logger = setup_logging('run.log')
@@ -29,11 +30,6 @@ try:
 except FileNotFoundError:
     version = 'Unknown'
     logger.warning('Version file not found. Using "Unknown" as version number.')
-
-# # Hide the console window on Windows
-# if os.name == 'nt':
-#     hwnd = win32gui.GetForegroundWindow()
-#     win32gui.ShowWindow(hwnd, win32con.SW_HIDE)
 
 user_url = "http://localhost:63342/unichat/frontend/index.html"
 print(f'If the chat page is not opened within few seconds, please click the link {user_url} instead.')
@@ -51,6 +47,7 @@ app.add_middleware(
     allow_headers=['*'],
 )
 
+
 # Define request model
 class QuestionRequest(BaseModel):
     question: str
@@ -59,6 +56,7 @@ class QuestionRequest(BaseModel):
 # Define response model
 class AnswerResponse(BaseModel):
     answer: str
+
 
 # Provide query API http://127.0.0.1:8000/ask
 @app.post("/ask", response_model=AnswerResponse)
@@ -72,13 +70,13 @@ async def ask_question(request: QuestionRequest):
         # Build answer through RAG chain
         # answer = qa_chain.run(user_question)
         answer = msghist_chain.invoke({"input": user_question},
-                                            config={"configurable": {"session_id": session_id}})
+                                      config={"configurable": {"session_id": session_id}})
 
         ai_answer = answer['answer']
         ai_thinks = []
         thinks = re.findall(r'<think>([\s\S]*)</think>', ai_answer)
         if len(thinks) > 0:
-            [ai_thinks.append(th.strip()) for th in thinks if len(th.strip())>0]
+            [ai_thinks.append(th.strip()) for th in thinks if len(th.strip()) > 0]
             if len(ai_thinks) > 0:
                 reasoning = ('<<<<<< 推理开始 >>>>>>\n\n' + '\n------\n'.join(ai_thinks)
                              + '\n\n<<<<<< 推理完成 >>>>>>\n\n')
@@ -126,6 +124,7 @@ class ModelSelect(BaseModel):
 async def fetch_any():
     # print(f'GET: /api')
     return {'API': ['models', 'documents', 'upload-documents']}
+
 
 class ModelConfig(BaseModel):
     model_support: List[Dict[str, Union[str, List[str]]]]
@@ -283,10 +282,11 @@ async def fetch_documents():
     except Exception as ee:
         raise HTTPException(status_code=500, detail=f"Error fetching documents and system prompt: {str(ee)}")
 
-import webbrowser
+
 @app.on_event("startup")
 async def startup_event():
     webbrowser.open_new_tab(user_url)
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -294,10 +294,13 @@ async def shutdown_event():
     logger.info("Application shutdown")
 
 
-# Function to start the uvicorn server
 server = None
+
+
+# Function to start the uvicorn server
 def start_server():
     global server
+    logger.info(f'Start the server...')
     # uvicorn.run(app, host="127.0.0.1", port=8000)
     server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=8000))
     server.run()
@@ -305,12 +308,10 @@ def start_server():
 
 # Function to stop the uvicorn server and quit the application
 def exit_app():
-    global server_thread
+    # global server_thread
     # Here you need to add code to gracefully stop the uvicorn server
     # Since uvicorn does not have a built - in way to stop the server from another thread,
     # you can use a more complex solution like a signal or a flag to stop the server
-    # For simplicity, we just quit the QApplication here
-    # app.quit()
     global server
     if server:
         server.should_exit = True
@@ -335,6 +336,11 @@ def create_system_tray():
 
         # Create a menu for the system tray icon
         menu = QMenu()
+
+        show_console_action = QAction("Show Console", menu)
+        show_console_action.triggered.connect(show_console_window)
+        menu.addAction(show_console_action)
+
         exit_action = QAction("Exit", menu)
         exit_action.triggered.connect(exit_app)
         menu.addAction(exit_action)
@@ -344,16 +350,66 @@ def create_system_tray():
 
     sys.exit(qapp.exec_())
 
+
 # Signal handler
 def signal_handler(sig, frame):
     _, _ = sig, frame
     logger.info('You pressed Ctrl+C! Exiting...')
     exit_app()
 
-signal.signal(signal.SIGINT, signal_handler)
-signal.signal(signal.SIGTERM, signal_handler)
 
-import time
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)  # Unsupported on Windows
+
+hwnd = None
+
+# Function to show the console window
+def show_console_window():
+    if os.name == 'nt':
+        global hwnd
+        # hwnd = win32gui.GetForegroundWindow()
+        if win32gui.IsWindow(hwnd):
+            win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
+        elif hwnd:
+            logger.critical(f'Target window handler is invalid.')
+        else:
+            logger.critical(f'Target window handler is unknown.')
+
+
+# Hide the console window on Windows
+def hide_console_window():
+    if os.name == 'nt':
+        global hwnd
+        hwnd = win32gui.GetForegroundWindow()
+        # win32gui.ShowWindow(hwnd, win32con.SW_MINIMIZE)
+
+
+# Function to handle console close event
+def console_ctrl_handler(ctrl_type):
+    if ctrl_type == win32con.CTRL_C_EVENT:  # Ctrl+C event
+        logger.info('You pressed Ctrl+C! Exiting...')
+        exit_app()
+        return True
+    elif ctrl_type == win32con.CTRL_LOGOFF_EVENT:  # Logout event
+        logger.info('You is logging off. Performing cleanup...')
+        exit_app()
+        return True
+    elif ctrl_type == win32con.CTRL_SHUTDOWN_EVENT:  # Shutdown event
+        logger.info('System is shutting down. Saving data...')
+        exit_app()
+        return True
+    elif ctrl_type == win32con.CTRL_CLOSE_EVENT:
+        logger.info('You are closing the console window. It is about to be hidden to system tray.')
+        hide_console_window()
+        return True
+    return False
+
+
+# Register the console control handler
+win32api.SetConsoleCtrlHandler(console_ctrl_handler, True)
+
+
+
 if __name__ == "__main__":
     # uvicorn.run('http_server:app', host="127.0.0.1", port=8000, reload=False)
     # Start the server in a separate thread
