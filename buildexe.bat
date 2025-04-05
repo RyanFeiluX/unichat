@@ -71,3 +71,4 @@ mkdir dist\unichat\local_docs && copy docs\QA.md dist\unichat\local_docs
 
 copy %CD%\README.md %CD%\dist\unichat
 copy %CD%\LICENSE %CD%\dist\unichat
+copy %CD%\metadata.yml %CD%\dist\unichat

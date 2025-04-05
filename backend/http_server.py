@@ -10,6 +10,7 @@ from starlette.staticfiles import StaticFiles
 from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction
 from PyQt5.QtGui import QIcon
 import threading
+import signal
 import win32gui
 import win32con
 from logging_config import setup_logging
@@ -35,7 +36,7 @@ except FileNotFoundError:
 #     win32gui.ShowWindow(hwnd, win32con.SW_HIDE)
 
 user_url = "http://localhost:63342/unichat/frontend/index.html"
-print(f'If the chat page is not opened in few seconds, please click the link {user_url} instead.')
+print(f'If the chat page is not opened within few seconds, please click the link {user_url} instead.')
 
 # Create FastAPI application for API service
 app = FastAPI()
@@ -290,7 +291,7 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     # 在这里执行应用关闭时需要做的操作，如关闭数据库连接等
-    logger("Application shutdown")
+    logger.info("Application shutdown")
 
 
 # Function to start the uvicorn server
@@ -346,10 +347,9 @@ def create_system_tray():
 # Signal handler
 def signal_handler(sig, frame):
     _, _ = sig, frame
-    logger('You pressed Ctrl+C! Exiting...')
+    logger.info('You pressed Ctrl+C! Exiting...')
     exit_app()
 
-import signal
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
@@ -371,4 +371,4 @@ if __name__ == "__main__":
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        logger("Exiting application...")
+        logger.info("Exiting application...")
