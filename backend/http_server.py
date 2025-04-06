@@ -1,6 +1,5 @@
-import os, re
+import re
 import yaml
-from pydantic import BaseModel
 import uvicorn
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 import tomlkit  # Import tomlkit for round-trip parsing
@@ -295,7 +294,7 @@ async def shutdown_event():
 
 
 server = None
-
+qapp = None
 
 # Function to start the uvicorn server
 def start_server():
@@ -322,10 +321,20 @@ def exit_app():
     sys.exit(0)
 
 
-# Function to create and show the system tray icon
-def create_system_tray():
-    qapp = QApplication(sys.argv)
+def toggle_console_state(con, q_action):
+    visible = con.toggle_visibility()
+    update_tray_menu(visible, q_action)
 
+def update_tray_menu(visible, q_action):
+    # Update tray icon state
+    if visible:
+        q_action.setText('Hide Console')
+    else:
+        q_action.setText('Show Console')
+
+
+# Function to create and show the system tray icon
+def create_system_tray(con):
     # Create a system tray icon
     icon_path = os.path.join(app_root, "resources", "icon3.png")
     if not os.path.exists(icon_path):
@@ -335,18 +344,34 @@ def create_system_tray():
         tray_icon.setToolTip("UniChat is running")
 
         # Create a menu for the system tray icon
-        menu = QMenu()
+        tray_menu = QMenu()
 
-        show_console_action = QAction("Show Console", menu)
-        show_console_action.triggered.connect(show_console_window)
-        menu.addAction(show_console_action)
+        # show_console_action = QAction("Show Console", tray_menu)
+        # show_console_action.triggered.connect(console.toggle_visibility)
+        # tray_menu.addAction(show_console_action)
+        # if console.isVisible():
+        #     show_console_action.setEnabled(False)
+        # else:
+        #     show_console_action.setEnabled(True)
 
-        exit_action = QAction("Exit", menu)
+        console_action = QAction('Hide Console', tray_menu)
+        console_action.triggered.connect(lambda action: toggle_console_state(console, console_action))
+        # console_action.hovered.connect(lambda action: udpate_console_action(console, console_action))
+        tray_menu.addAction(console_action)
+        # if console.isVisible():
+        #     hide_console_action.setText('Hide Console')
+        # else:
+        #     hide_console_action.setText('Show Console')
+
+        exit_action = QAction("Exit", tray_menu)
         exit_action.triggered.connect(exit_app)
-        menu.addAction(exit_action)
+        tray_menu.addAction(exit_action)
 
-        tray_icon.setContextMenu(menu)
+        tray_icon.setContextMenu(tray_menu)
         tray_icon.show()
+
+        # Connect the visibilityChanged signal to the update_tray_menu function
+        console.visibilityChanged.connect(lambda visible: update_tray_menu(visible, console_action))
 
     sys.exit(qapp.exec_())
 
@@ -361,27 +386,27 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)  # Unsupported on Windows
 
-hwnd = None
+# hwnd = None
 
-# Function to show the console window
-def show_console_window():
-    if os.name == 'nt':
-        global hwnd
-        # hwnd = win32gui.GetForegroundWindow()
-        if win32gui.IsWindow(hwnd):
-            win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
-        elif hwnd:
-            logger.critical(f'Target window handler is invalid.')
-        else:
-            logger.critical(f'Target window handler is unknown.')
+# # Function to show the console window
+# def show_console_window():
+#     if os.name == 'nt':
+#         global hwnd
+#         # hwnd = win32gui.GetForegroundWindow()
+#         if win32gui.IsWindow(hwnd):
+#             win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
+#         elif hwnd:
+#             logger.critical(f'Target window handler is invalid.')
+#         else:
+#             logger.critical(f'Target window handler is unknown.')
 
 
-# Hide the console window on Windows
-def hide_console_window():
-    if os.name == 'nt':
-        global hwnd
-        hwnd = win32gui.GetForegroundWindow()
-        # win32gui.ShowWindow(hwnd, win32con.SW_MINIMIZE)
+# # Hide the console window on Windows
+# def hide_console_window():
+#     if os.name == 'nt':
+#         global hwnd
+#         hwnd = win32gui.GetForegroundWindow()
+#         # win32gui.ShowWindow(hwnd, win32con.SW_MINIMIZE)
 
 
 # Function to handle console close event
@@ -398,19 +423,30 @@ def console_ctrl_handler(ctrl_type):
         logger.info('System is shutting down. Saving data...')
         exit_app()
         return True
-    elif ctrl_type == win32con.CTRL_CLOSE_EVENT:
-        logger.info('You are closing the console window. It is about to be hidden to system tray.')
-        hide_console_window()
-        return True
+    # elif ctrl_type == win32con.CTRL_CLOSE_EVENT:
+    #     logger.info('You are closing the console window. It is about to be hidden to system tray.')
+    #     hide_console_window()
+    #     return True
     return False
 
 
 # Register the console control handler
-win32api.SetConsoleCtrlHandler(console_ctrl_handler, True)
+# win32api.SetConsoleCtrlHandler(console_ctrl_handler, True)
 
 
-
+from console_window import CustomConsole, CustomConsoleWriter
 if __name__ == "__main__":
+    # global qapp
+    qapp = QApplication(sys.argv)
+
+    # Create the custom console window
+    console = CustomConsole('UniChat Console')
+    console.show()
+
+    # Redirect the print output to the custom console window
+    sys.stdout = CustomConsoleWriter(console, logger)
+    sys.stderr = CustomConsoleWriter(console, logger)
+
     # uvicorn.run('http_server:app', host="127.0.0.1", port=8000, reload=False)
     # Start the server in a separate thread
     server_thread = threading.Thread(target=start_server)
@@ -418,9 +454,11 @@ if __name__ == "__main__":
     server_thread.start()
 
     # Create and show the system tray icon
-    create_system_tray()
+    create_system_tray(console)
 
-    server_thread.join()
+    # server_thread.join()
+    # logger.info("Exiting application...")
+    # sys.exit(qapp.exec_())
 
     # Keep the main thread alive
     try:
@@ -428,3 +466,4 @@ if __name__ == "__main__":
             time.sleep(1)
     except KeyboardInterrupt:
         logger.info("Exiting application...")
+    sys.exit(qapp.exec_())
