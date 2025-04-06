@@ -32,19 +32,12 @@ from pypandoc import convert_file as cvt_doctype
 # from starlette.staticfiles import StaticFiles
 from logging_config import setup_logging
 
+from http_server import app_root
+
 # Configure logging
-logger = setup_logging('run.log')
+logger = setup_logging(os.path.join(app_root, 'run.log'))
 
 logger.info(f'python version : {sys.version}')
-global app_root
-if getattr(sys, 'frozen', False):
-    # 如果是PyInstaller打包的exe
-    app_root = os.path.dirname(sys.executable)
-else:
-    # 普通的Python脚本
-    app_root = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
-print(f'APP ROOT: {app_root}')
-
 # Load env variables from local .env file. Several parameters are there, including API_KEY.
 dotenv_path = find_dotenv(filename='.env', raise_error_if_not_found=False)
 if dotenv_path:

@@ -23,7 +23,7 @@ dependencies:
   - certifi=2025.1.31
   - cffi=1.17.1
   - charset-normalizer=3.3.2
-  - click=8.1.7
+  - click=7.1.2
   - colorama=0.4.6
   - cryptography=44.0.1
   - cudatoolkit=11.8.0
@@ -45,25 +45,19 @@ dependencies:
   - httptools=0.6.4
   - httpx=0.27.0
   - httpx-sse=0.4.0
-  - icu=73.1
   - idna=3.7
   - intel-openmp=2023.1.0
   - jinja2=3.1.6
   - jiter=0.6.1
-  - jpeg=9e
   - jsonpatch=1.33
   - jsonpointer=2.1
-  - krb5=1.20.1
   - langchain-text-splitters=0.3.3
   - langsmith=0.1.147
   - libblas=3.9.0
   - libfaiss=1.9.0
   - libffi=3.4.4
   - liblapack=3.9.0
-  - libpng=1.6.39
-  - libpq=17.4
   - libzlib=1.2.13
-  - lz4-c=1.9.4
   - m2w64-gcc-libgfortran=5.3.0
   - m2w64-gcc-libs=5.3.0
   - m2w64-gcc-libs-core=5.3.0
@@ -95,8 +89,6 @@ dependencies:
   - pyinstaller-hooks-contrib=2025.1
   - pyjwt=2.10.1
   - pypandoc=1.15
-  - pyqt=6.7.1
-  - pyqt6-sip=13.9.1
   - pysocks=1.7.1
   - python=3.10.16
   - python-dotenv=0.21.0
@@ -105,12 +97,6 @@ dependencies:
   - pywin32=308
   - pywin32-ctypes=0.2.2
   - pyyaml=6.0.2
-  - qtbase=6.7.3
-  - qtdeclarative=6.7.3
-  - qtsvg=6.7.3
-  - qttools=6.7.3
-  - qtwebchannel=6.7.3
-  - qtwebsockets=6.7.3
   - regex=2024.11.6
   - requests=2.32.3
   - requests-toolbelt=1.0.0
@@ -118,7 +104,6 @@ dependencies:
   - rich-toolkit=0.11.3
   - setuptools=75.8.0
   - shellingham=1.5.0
-  - sip=6.10.0
   - sniffio=1.3.0
   - sqlalchemy=2.0.37
   - sqlite=3.45.3
@@ -128,7 +113,6 @@ dependencies:
   - tiktoken=0.9.0
   - tk=8.6.14
   - toml=0.10.2
-  - tomli=2.0.1
   - tomlkit=0.13.2
   - tqdm=4.67.1
   - typer=0.15.2
@@ -153,7 +137,6 @@ dependencies:
   - yaml=0.2.5
   - yarl=1.18.0
   - zlib=1.2.13
-  - zstd=1.5.6
   - pip:
       - dashscope==1.22.1
       - langchain==0.3.20
@@ -170,8 +153,9 @@ dependencies:
       - ply==3.11
       - pydantic==2.9.2
       - pydantic-settings==2.8.1
+      - pyinstaller-versionfile==3.0.0
       - pymupdf==1.25.4
-      - pyqt5==5.15.11
+      - pyqt5==5.15.5
       - pyqt5-qt5==5.15.2
       - pyqt5-sip==12.17.0
       - urlparser==0.1.2

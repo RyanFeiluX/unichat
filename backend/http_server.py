@@ -1,4 +1,4 @@
-import re
+import os, sys, re
 import yaml
 import uvicorn
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
@@ -15,8 +15,18 @@ import win32gui, win32api, win32con
 from logging_config import setup_logging
 import time
 
+
+if getattr(sys, 'frozen', False):
+    # 如果是PyInstaller打包的exe
+    app_root = os.path.abspath(os.path.dirname(sys.executable))
+else:
+    # 普通的Python脚本
+    app_root = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+
 # Configure logging
-logger = setup_logging('run.log')
+logger = setup_logging(os.path.join(app_root, 'run.log'))
+
+print(f'APP ROOT: {app_root}')
 
 from rag_service import *
 

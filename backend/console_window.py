@@ -54,8 +54,10 @@ class CustomConsole(QWidget):
 
     def append_text(self, text):
         if text.endswith('\n'):
-            text = text[:-1]
-        self.text_edit.append(text)
+            text_strip = text[:-1]
+        else:
+            text_strip = text
+        self.text_edit.append(text_strip)
 
 # Custom console writer class
 class CustomConsoleWriter:
