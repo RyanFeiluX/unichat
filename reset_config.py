@@ -28,7 +28,7 @@ if __name__ == "__main__":
     parser.add_argument('--factory-config', dest='fac_config', type=str, required=True, help="Factory config")
     args = parser.parse_args()
 
-    logger.info(f'Config is reset for distribution purpose.')
+    logger.info(f'Config is being reset for distribution purpose.')
 
     dynamic_cfg_path = args.dyn_config
     if not os.path.exists(dynamic_cfg_path):
