@@ -3,12 +3,16 @@
 REM Set the script path
 @set script=../unichat/backend/http_server.py
 
+@setlocal enabledelayedexpansion
+
 REM Check if PyInstaller is installed
 pyinstaller --version >nul 2>&1
-if %errorlevel% neq 0 (
+if !errorlevel! neq 0 (
     echo PyInstaller is not installed. Please install it firstly.
     exit /b 1
 )
+
+@cls
 
 REM Check if the script file exists
 if not exist %script% (
