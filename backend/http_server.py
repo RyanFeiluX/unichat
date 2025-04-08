@@ -12,7 +12,8 @@ import threading
 import webbrowser
 import signal
 import win32gui, win32api, win32con
-from logging_config import setup_logging
+# import win32console  # Import win32console to access the console buffer
+from logging_config import setup_logging, redirect_stream, CustomStream
 import time
 
 
@@ -24,9 +25,9 @@ else:
     app_root = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
 # Configure logging
-logger = setup_logging(os.path.join(app_root, 'run.log'))
+logger = setup_logging(logfile=os.path.join(app_root, 'run.log'))
 
-print(f'APP ROOT: {app_root}')
+logger.info(f'APP ROOT: {app_root}')
 
 from rag_service import *
 
@@ -74,7 +75,7 @@ async def ask_question(request: QuestionRequest):
         # Get user question
         user_question = request.question
         session_id = "uid"
-        print(f'session[{session_id}] question:\"{user_question}\"')
+        logger.debug(f'session[{session_id}] question:{user_question}')
 
         # Build answer through RAG chain
         # answer = qa_chain.run(user_question)
@@ -105,7 +106,7 @@ async def ask_question(request: QuestionRequest):
 
         # Return answer
         answer = AnswerResponse(answer=final_answer)
-        print(f'answer:{summing}')
+        logger.debug(f'answer:{summing}')
         return answer
     except Exception as ee:
         logger.error(f'{repr(ee)}')
@@ -203,7 +204,7 @@ def remove_useless(doc_list):
         file_path = os.path.join(local_docs_dir, f)
         if os.path.isfile(file_path):
             os.remove(file_path)
-            print(f"Removed the useless: {file_path}")
+            logger.info(f"Removed the useless: {file_path}")
 
 
 @app.post("/api/upload-documents")
@@ -301,13 +302,17 @@ async def startup_event():
 async def shutdown_event():
     # 在这里执行应用关闭时需要做的操作，如关闭数据库连接等
     logger.info("Application shutdown")
+    # exit_app()
 
 
 server = None
 qapp = None
 
 # Function to start the uvicorn server
-def start_server():
+def start_server(consoleWriter):
+    sys.stdout = consoleWriter
+    sys.stderr = consoleWriter
+
     global server
     logger.info(f'Start the server...')
     # uvicorn.run(app, host="127.0.0.1", port=8000)
@@ -328,6 +333,9 @@ def exit_app():
     qapp = QApplication.instance()
     if qapp:
         qapp.quit()
+    if hwnd:
+        win32gui.CloseWindow(hwnd)
+    # logger.shutdown()
     sys.exit(0)
 
 
@@ -356,22 +364,9 @@ def create_system_tray(con):
         # Create a menu for the system tray icon
         tray_menu = QMenu()
 
-        # show_console_action = QAction("Show Console", tray_menu)
-        # show_console_action.triggered.connect(console.toggle_visibility)
-        # tray_menu.addAction(show_console_action)
-        # if console.isVisible():
-        #     show_console_action.setEnabled(False)
-        # else:
-        #     show_console_action.setEnabled(True)
-
         console_action = QAction('Hide Console', tray_menu)
         console_action.triggered.connect(lambda action: toggle_console_state(console, console_action))
-        # console_action.hovered.connect(lambda action: udpate_console_action(console, console_action))
         tray_menu.addAction(console_action)
-        # if console.isVisible():
-        #     hide_console_action.setText('Hide Console')
-        # else:
-        #     hide_console_action.setText('Show Console')
 
         exit_action = QAction("Exit", tray_menu)
         exit_action.triggered.connect(exit_app)
@@ -396,7 +391,7 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)  # Unsupported on Windows
 
-# hwnd = None
+hwnd = None
 
 # # Function to show the console window
 # def show_console_window():
@@ -446,6 +441,9 @@ def console_ctrl_handler(ctrl_type):
 
 from console_window import CustomConsole, CustomConsoleWriter
 if __name__ == "__main__":
+    hwnd = win32gui.GetForegroundWindow()
+    win32gui.SetWindowText(hwnd, 'UniChat Window')
+
     # global qapp
     qapp = QApplication(sys.argv)
 
@@ -456,18 +454,45 @@ if __name__ == "__main__":
     # Redirect the print output to the custom console window
     sys.stdout = CustomConsoleWriter(console, logger)
     sys.stderr = CustomConsoleWriter(console, logger)
+    redirect_stream(logger, CustomStream(console.get_text_edit()))
+
+    # # Copy the content from the Windows console to the custom console
+    # if os.name == 'nt':
+    #     try:
+    #         _, pid = win32process.GetWindowThreadProcessId(hwnd)
+    #         win32console.AttachConsole(pid)
+    #         # Get the console screen buffer
+    #         screen_buffer = win32console.GetStdHandle(win32console.STD_OUTPUT_HANDLE)
+    #         # Get the console buffer info
+    #         buffer_info = screen_buffer.GetConsoleScreenBufferInfo()
+    #         # Calculate the number of lines and columns
+    #         lines = buffer_info['Size'].Y
+    #         columns = buffer_info['Size'].X
+    #         # Read the console buffer
+    #         console_text = screen_buffer.ReadConsoleOutputCharacter(columns * lines, 0, 0)
+    #         # Append the text to the custom console
+    #         console.append_text(console_text)
+    #     except Exception as e:
+    #         logger.error(f"Failed to copy console content: {repr(e)}")
+
+    # Hide the default main console in case of Windows but not PyCharm environment.
+    if not os.getenv('PYCHARM_HOSTED') and os.name == 'nt':
+        time.sleep(1)
+        # hwnd = win32gui.GetForegroundWindow()
+        win32gui.ShowWindow(hwnd, win32con.SW_HIDE)
+    console.setFocus()
 
     # uvicorn.run('http_server:app', host="127.0.0.1", port=8000, reload=False)
     # Start the server in a separate thread
-    server_thread = threading.Thread(target=start_server)
+    server_thread = threading.Thread(target=start_server, args=(sys.stdout,))
     server_thread.daemon = True
     server_thread.start()
 
     # Create and show the system tray icon
     create_system_tray(console)
 
-    # server_thread.join()
-    # logger.info("Exiting application...")
+    server_thread.join()
+    logger.info("Exiting application...")
     # sys.exit(qapp.exec_())
 
     # Keep the main thread alive
@@ -476,4 +501,5 @@ if __name__ == "__main__":
             time.sleep(1)
     except KeyboardInterrupt:
         logger.info("Exiting application...")
+        time.sleep(1)
     sys.exit(qapp.exec_())
