@@ -31,11 +31,10 @@ from pypandoc import convert_file as cvt_doctype
 # from starlette.middleware.cors import CORSMiddleware
 # from starlette.staticfiles import StaticFiles
 from logging_config import setup_logging
-
 from http_server import app_root
 
 # Configure logging
-logger = setup_logging(os.path.join(app_root, 'run.log'))
+logger = setup_logging(logfile=os.path.join(app_root, 'run.log'))
 
 logger.info(f'python version : {sys.version}')
 # Load env variables from local .env file. Several parameters are there, including API_KEY.
