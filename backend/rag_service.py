@@ -5,6 +5,7 @@ import shutil
 from pydantic import BaseModel
 from dotenv import load_dotenv, find_dotenv
 import toml
+import tomlkit  # Import tomlkit for round-trip parsing
 # from langchain_community.embeddings import OpenAIEmbeddings
 from langchain.chains import RetrievalQA
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
@@ -28,6 +29,7 @@ from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from pypandoc import convert_file as cvt_doctype
+from utils import check_model_avail
 # from starlette.middleware.cors import CORSMiddleware
 # from starlette.staticfiles import StaticFiles
 from logging_config import setup_logging
@@ -97,6 +99,21 @@ def merge_config(target_cfg, source_cfg):
 # Ensure dynamic configuration is merged with factory defaults
 merge_config(dcfg, factory_cfg)
 
+def update_llmconfig(llmProvider, llmModel):
+    # Load the original TOML file with tomlkit to preserve structure and comments
+    with open(os.path.join(app_root, "backend", "dyn_config.toml"), "r", encoding="utf-8") as f:
+        dyn_config = tomlkit.parse(f.read())
+
+    # Update the TOML structure with new values
+    dyn_config['Deployment']['LLM_PROVIDER'] = llmProvider
+    dyn_config['Deployment']['LLM_MODEL'] = llmModel
+
+    # Write the updated TOML back to the file
+    with open(os.path.join(app_root, "backend", "dyn_config.toml"), "w", encoding="utf-8") as f:
+        f.write(tomlkit.dumps(dyn_config))
+        f.flush()
+
+
 # llm
 llm_provider = dcfg['Deployment']['LLM_PROVIDER'].upper()  # os.getenv("LLM_PROVIDER")
 if llm_provider:
@@ -105,25 +122,38 @@ if llm_provider:
     llm_model = (dcfg['Deployment']['LLM_MODEL']
                  or scfg['Providers'][llm_provider][f'{llm_provider}_LLM_MODEL'].split(',')[0])
     logger.info(f'LLM model : {llm_model}')
+    if not llm_model:
+        logger.critical(f'Please configure at least a model for {llm_provider}.')
 else:
-    llm_provider = 'OPENAI'
-    logger.info(f'LLM provider : {llm_provider} picked by default.')
-    # llm_model = os.getenv(f'{llm_provider}_LLM_MODEL')
-    llm_model = scfg['Deployment'][llm_provider][f'{llm_provider}_LLM_MODEL'].split(',')[0]
-    logger.info(f'LLM model : {llm_model}')
-if llm_provider == 'OPENAI':
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
-elif llm_provider == 'MOONSHOT':
+    llm_model = None
+
+if (not llm_provider) or (not check_model_avail(llm_model)):
+    update_llmconfig(scfg['Default']['llmProvider'], scfg['Default']['llmModel'])
+
+    logger.error(f'Model {llm_model} is not locally found. Please run \"Ollama pull {llm_model}\" offline.')
+    logger.warning(f'Please close the app and download model {llm_model} offline.')
+    while True:
+        pass
+# else:
+#     llm_provider = scfg['Default']['Provider']
+#     logger.warning(f'LLM provider : {llm_provider} picked by default.')
+#     # llm_model = os.getenv(f'{llm_provider}_LLM_MODEL')
+#     llm_model = scfg['Default']['Model']
+#     logger.info(f'LLM model : {llm_model}')
+
+if llm_provider.upper() == 'OPENAI':
+    llm = ChatOpenAI(model=llm_model, temperature=0.3)
+elif llm_provider.upper() == 'MOONSHOT':
     llm = Moonshot(model=llm_model)
-elif llm_provider == 'BAICHUAN':
+elif llm_provider.upper() == 'BAICHUAN':
     llm = ChatBaichuan(model=llm_model, temperature=0.3)
-elif llm_provider == 'ZHIPUAI':
+elif llm_provider.upper() == 'ZHIPUAI':
     llm = ChatZhipuAI(model=llm_model, temperature=0.3)
-elif llm_provider == 'DEEPSEEK':
+elif llm_provider.upper() == 'DEEPSEEK':
     llm = ChatDeepSeek(model=llm_model, temperature=0.3)
-elif llm_provider == 'DASHSCOPE':
+elif llm_provider.upper() == 'DASHSCOPE':
     llm = ChatTongyi(model=llm_model, top_p=0.3)
-elif llm_provider == 'OLLAMA':
+elif llm_provider.upper() == 'OLLAMA':
     llm = ChatOllama(model=llm_model, temperature=0.3)
 else:
     raise RuntimeWarning(f'LLM provider {llm_provider} is not supported yet.')
@@ -212,16 +242,45 @@ texts = text_splitter.create_documents(
 for j, t in enumerate(texts):
     t.id = f'Doc-{j}'
 
+def update_embconfig(embProvider, embModel):
+    # Load the original TOML file with tomlkit to preserve structure and comments
+    with open(os.path.join(app_root, "backend", "dyn_config.toml"), "r", encoding="utf-8") as f:
+        dyn_config = tomlkit.parse(f.read())
+
+    # Update the TOML structure with new values
+    dyn_config['Deployment']['EMB_PROVIDER'] = embProvider
+    dyn_config['Deployment']['EMB_MODEL'] = embModel
+
+    # Write the updated TOML back to the file
+    with open(os.path.join(app_root, "backend", "dyn_config.toml"), "w", encoding="utf-8") as f:
+        f.write(tomlkit.dumps(dyn_config))
+        f.flush()
+
+
 emb_provider = dcfg['Deployment']['EMB_PROVIDER'].upper()  # os.getenv('EMB_PROVIDER')
 if emb_provider:
     logger.info(f'Embedding provider : {emb_provider}')
     emb_model = dcfg['Deployment']['EMB_MODEL']  # os.getenv(f"EMB_MODEL")
     logger.info(f'Embedding model : {emb_model}')
+    if not emb_model:
+        logger.critical(f'Please configure at least a model for {emb_provider}.')
 else:
-    emb_provider = 'OPENAI'
-    logger.info(f'Embedding provider : {emb_provider} picked by default.')
-    emb_model = dcfg['Deployment'][f"{emb_provider}_EMB_MODEL"]  # os.getenv(f"{emb_provider}_EMB_MODEL")
-    logger.info(f'Embedding model : {emb_model}')
+    emb_model = None
+
+if (not emb_provider) or (not check_model_avail(emb_model)):
+    update_embconfig(scfg['Default']['embProvider'], scfg['Default']['embModel'])
+
+    logger.error(f'Model {emb_model} is not locally found. Embedding config shall fall back.')
+    logger.warning(f'Please close the app and download model {emb_model} offline.')
+    while True:
+        pass
+
+# else:
+#     emb_provider = 'OPENAI'
+#     logger.info(f'Embedding provider : {emb_provider} picked by default.')
+#     emb_model = dcfg['Deployment'][f"{emb_provider}_EMB_MODEL"]  # os.getenv(f"{emb_provider}_EMB_MODEL")
+#     logger.info(f'Embedding model : {emb_model}')
+
 if emb_provider == 'OPENAI':
     embeddings = OpenAIEmbeddings(model=emb_model)  # "text-embedding-ada-002"
 elif emb_provider == 'BAICHUAN':
@@ -233,7 +292,12 @@ elif emb_provider.startswith('OLLAMA'):  # This branch is handled specially.
     assert emb_model, f'One model must be specified in case of Ollama for embedding.'
     embeddings = OllamaEmbeddings(model=emb_model)
 else:
-    raise RuntimeWarning(f'Embedding provider {emb_provider} is not supported. Please check your setting.')
+    update_embconfig(scfg['Default']['embProvider'], scfg['Default']['embModel'])
+    # raise RuntimeWarning(f'Embedding provider {emb_provider} is not supported. Please check your setting.')
+    logger.error(f'Embedding provider {emb_provider} is not supported. Embedding config shall fall.')
+    logger.warning(f'Please close and restart the app to take new embedding config effective...')
+    while True:
+        pass
 
 # Maintain history
 store = {}  # Keep all chat history. key:session_id,value:chat message

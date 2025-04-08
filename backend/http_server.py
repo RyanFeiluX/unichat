@@ -12,6 +12,7 @@ import threading
 import webbrowser
 import signal
 import win32gui, win32api, win32con
+from utils import check_model_avail
 # import win32console  # Import win32console to access the console buffer
 from logging_config import setup_logging, redirect_stream, CustomStream
 import time
@@ -162,6 +163,18 @@ async def fetch_config():
 # API for http://127.0.0.1:8000/api/models
 @app.put("/api/models")  # Updated endpoint
 async def save_config(options: ModelSelect):
+    unavail_models = set()
+    if options.llm_provider == 'Ollama':
+        if not check_model_avail(options.llm_model):
+            unavail_models.add(options.llm_model)
+    if options.emb_provider == 'Ollama':
+        if not check_model_avail(options.emb_model):
+            unavail_models.add(options.emb_model)
+    if unavail_models:
+        logger.warning(f'Model(s) {",".join(unavail_models)} {"are" if len(unavail_models)>0 else "is"} not downloaded yet.')
+        return {"message": f'Configuration failed because model(s) {",".join(unavail_models)} {"are" if len(unavail_models)>0 else "is"} not downloaded yet.',
+                "status_ok": False}
+
     # print(f'PUT: /api/models')
     dcfg['Deployment']['LLM_PROVIDER'] = options.llm_provider
     dcfg['Deployment']['LLM_MODEL'] = options.llm_model
