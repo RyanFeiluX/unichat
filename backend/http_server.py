@@ -440,6 +440,7 @@ def console_ctrl_handler(ctrl_type):
 
 
 from console_window import CustomConsole, CustomConsoleWriter
+from utils import running_in_pycharm, pycharm_hosted
 if __name__ == "__main__":
     hwnd = win32gui.GetForegroundWindow()
     win32gui.SetWindowText(hwnd, 'UniChat Window')
@@ -455,6 +456,11 @@ if __name__ == "__main__":
     sys.stdout = CustomConsoleWriter(console, logger)
     sys.stderr = CustomConsoleWriter(console, logger)
     redirect_stream(logger, CustomStream(console.get_text_edit()))
+
+    pych_context = running_in_pycharm()
+    pych_hosted = pycharm_hosted()
+    inPyCharm = pych_context or pych_hosted
+    logger.info(f'PyCharm Context: {inPyCharm}')
 
     # # Copy the content from the Windows console to the custom console
     # if os.name == 'nt':
@@ -476,7 +482,7 @@ if __name__ == "__main__":
     #         logger.error(f"Failed to copy console content: {repr(e)}")
 
     # Hide the default main console in case of Windows but not PyCharm environment.
-    if not os.getenv('PYCHARM_HOSTED') and os.name == 'nt':
+    if not inPyCharm and os.name == 'nt':
         time.sleep(1)
         # hwnd = win32gui.GetForegroundWindow()
         win32gui.ShowWindow(hwnd, win32con.SW_HIDE)
