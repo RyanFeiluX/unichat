@@ -1,5 +1,6 @@
 import os
 import psutil
+import ollama
 
 def running_in_pycharm():
     try:
@@ -17,7 +18,14 @@ def running_in_pycharm():
 def pycharm_hosted():
     return bool(os.getenv('PYCHARM_HOSTED'))
 
-if running_in_pycharm():
-    print("应用程序正在 PyCharm 的终端中运行。")
-else:
-    print("应用程序正在其他终端中运行。")
+def check_model_avail(model_name):
+    if not model_name:
+        return False
+    available_models = ollama.list()  # 获取本地模型列表
+    model_names = [m.model for m in available_models.models]
+    return model_name in model_names
+
+# if running_in_pycharm():
+#     print("应用程序正在 PyCharm 的终端中运行。")
+# else:
+#     print("应用程序正在其他终端中运行。")
