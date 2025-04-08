@@ -2,6 +2,16 @@ BASE_URL="http://localhost:8000"
 
 marked.setOptions({sanitize: true});
 
+let hasUnsavedModelChanges = false;
+let hasUnsavedKnowledgeChanges = false;
+
+// Store original values of dropdowns
+let originalLlmProvider;
+let originalLlmModel;
+let originalEmbeddingProvider;
+let originalEmbeddingModel;
+let originalSystemPrompt;
+
 function sendMessage() {
     const userInput = document.getElementById('user-input').value;
     if (userInput.trim() === "") return;
@@ -64,6 +74,13 @@ function keyDown(e) {
 }
 
 window.onbeforeunload = function(){
+    if (hasUnsavedModelChanges && hasUnsavedKnowledgeChanges) {
+        return '您在模型配置和知识库配置中均有未保存的更改。确定要离开此页面吗？';
+    } else if (hasUnsavedModelChanges) {
+        return '您在模型配置中有未保存的更改。确定要离开此页面吗？';
+    } else if (hasUnsavedKnowledgeChanges) {
+        return '您在知识库配置中有未保存的更改。确定要离开此页面吗？';
+    }
     var html = document.querySelector("html");
     sessionStorage.setItem("pre",html.innerHTML);
 }
@@ -98,8 +115,37 @@ function openConfigModal() {
 }
 
 function closeConfigModal() {
-    const configModal = document.getElementById('config-modal');
-    configModal.style.display = 'none'; // Ensure the modal is hidden
+    console.log('hasUnsavedModelChanges:', hasUnsavedModelChanges);
+    console.log('hasUnsavedKnowledgeChanges:', hasUnsavedKnowledgeChanges);
+    if (hasUnsavedModelChanges || hasUnsavedKnowledgeChanges) {
+        const confirmDiscard = confirm('您有未保存的更改。是否要丢弃更改并关闭配置页面？');
+        if (confirmDiscard) {
+            const configModal = document.getElementById('config-modal');
+            configModal.style.display = 'none'; // Ensure the modal is hidden
+
+            // Rollback model tab selections
+            document.getElementById('llm-provider').value = originalLlmProvider;
+            document.getElementById('llm-model').value = originalLlmModel;
+            document.getElementById('embedding-provider').value = originalEmbeddingProvider;
+            document.getElementById('embedding-model').value = originalEmbeddingModel;
+            updateLlmModels();
+            updateEmbeddingModels();
+            updateProviderDescription();
+
+            // Rollback knowledge tab system prompt
+            document.getElementById('system-prompt').value = originalSystemPrompt;
+
+            // Disable save buttons
+            disableSaveButton('model-tab');
+            disableSaveButton('knowledge-tab');
+
+            hasUnsavedModelChanges = false;
+            hasUnsavedKnowledgeChanges = false;
+        }
+    } else {
+        const configModal = document.getElementById('config-modal');
+        configModal.style.display = 'none'; // Ensure the modal is hidden
+    }
 }
 
 // Attach the openConfigModal function to the config button
@@ -125,25 +171,38 @@ document.addEventListener('DOMContentLoaded', () => {
         updateLlmModels();
         updateProviderDescription();
         enableSaveButton('model-tab'); // Enable save button when LLM provider changes
+        hasUnsavedModelChanges = true;
     });
     document.getElementById('llm-model').addEventListener('change', () => {
         enableSaveButton('model-tab'); // Enable save button when LLM model changes
+        hasUnsavedModelChanges = true;
     });
     document.getElementById('embedding-provider').addEventListener('change', () => {
         updateEmbeddingModels();
         enableSaveButton('model-tab'); // Enable save button when embedding provider changes
+        hasUnsavedModelChanges = true;
     });
     document.getElementById('embedding-model').addEventListener('change', () => {
         enableSaveButton('model-tab'); // Enable save button when embedding model changes
+        hasUnsavedModelChanges = true;
     });
-    document.getElementById('save-model-button').addEventListener('click', saveModelConfig);
+    document.getElementById('save-model-button').addEventListener('click', () => {
+        saveModelConfig();
+//        hasUnsavedModelChanges = false;
+    });
 
     // Attach event listeners for knowledge tab
     document.getElementById('add-document-button').addEventListener('click', triggerFileInput);
     document.getElementById('delete-document-button').addEventListener('click', deleteSelectedFile);
     document.getElementById('document-input').addEventListener('change', addDocuments);
-    document.getElementById('system-prompt').addEventListener('input', () => enableSaveButton('knowledge-tab'));
-    document.getElementById('save-knowledge-button').addEventListener('click', saveKnowledgeBase);
+    document.getElementById('system-prompt').addEventListener('input', () => {
+        enableSaveButton('knowledge-tab');
+        hasUnsavedKnowledgeChanges = true;
+    });
+    document.getElementById('save-knowledge-button').addEventListener('click', () => {
+        saveKnowledgeBase();
+//        hasUnsavedKnowledgeChanges = false;
+    });
 
     // Initialize tabs
     initializeModelTab();
@@ -194,6 +253,12 @@ function initializeModelTab() {
         document.getElementById('embedding-provider').value = data.model_select.emb_provider || '';
         document.getElementById('embedding-model').value = data.model_select.emb_model || '';
 
+        // Store original values
+        originalLlmProvider = data.model_select.llm_provider || '';
+        originalLlmModel = data.model_select.llm_model || '';
+        originalEmbeddingProvider = data.model_select.emb_provider || '';
+        originalEmbeddingModel = data.model_select.emb_model || '';
+
         // Update provider description
         // Organize provider descriptions
         provider_intro = data.model_support.reduce((acc, item) => {
@@ -243,7 +308,8 @@ function saveModelConfig() {
 
     // Validate configuration values
     if (!llmProvider || !llmModel || !embProvider || !embModel) {
-        alert('请确保所有配置项均已选择有效值。');
+//        alert('请确保所有配置项均已选择有效值。');
+        showCustomAlert ('警告', '请确保所有配置项均已选择有效值。');
         return;
     }
 
@@ -262,16 +328,31 @@ function saveModelConfig() {
         body: JSON.stringify(model_config)
     })
     .then(response => {
-        if (response.ok) {
-            alert('结果: 模型配置已保存');
+        if (!response.ok) {
+            return response.text().then(errorText => {
+                throw new Error(`Server error: ${errorText}`);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status_ok) {
+            showCustomAlert('成功', data.message);
             disableSaveButton('model-tab'); // Disable save button after saving
+
+            // Update original values after successful save
+            originalLlmProvider = llmProvider;
+            originalLlmModel = llmModel;
+            originalEmbeddingProvider = embProvider;
+            originalEmbeddingModel = embModel;
+            hasUnsavedModelChanges = false;
         } else {
-            alert('结果: 保存模型配置时出错');
+            showCustomAlert('失败', data.message);
         }
     })
     .catch(error => {
-        console.error('Error saving configuration:', error);
-        alert('保存模型配置时发生错误');
+        console.error('Error in saving configuration:', error);
+        showCustomAlert('错误', '保存模型配置时发生错误');
     });
 }
 
@@ -357,7 +438,7 @@ function deleteSelectedFile() {
         }
         updateDeleteButtonState(); // Update the delete button state
     } else {
-        alert('请先选择一个文档');
+        showCustomAlert('提示', '请先选择一个文档');
     }
     enableSaveButton('knowledge-tab');
 }
@@ -442,7 +523,8 @@ function saveKnowledgeBase() {
         .then(response => {
             if (response.ok) {
                 selectedDocumentsContent = []
-                alert(`${target_cn}已成功上传到服务器并保存。`);
+//                alert(`${target_cn}已成功上传到服务器并保存。`);
+                showCustomAlert('成功', `${target_cn}已成功上传到服务器并保存。`);
                 disableSaveButton('knowledge-tab'); // Disable save button after saving
             } else {
                 response.text().then(errorText => {
@@ -452,11 +534,12 @@ function saveKnowledgeBase() {
         })
         .catch(error => {
             console.error('Error during document upload:', error);
-            alert(`上传文档(清单)和系统提示词时出错: ${error.message}`);
+//            alert(`上传文档(清单)和系统提示词时出错: ${error.message}`);
+            showCustomAlert('错误', `上传文档(清单)和系统提示词时出错: ${error.message}`);
         });
     } catch (error) {
-        console.error('Error:', error);
-        alert(error.message);
+//        console.error('Error:', error);
+        showCustomAlert('异常', error.message);
     }
 }
 
@@ -507,6 +590,9 @@ function initializeKnowledgeTab() {
         // Populate the system prompt
         const systemPrompt = document.getElementById('system-prompt');
         systemPrompt.value = data.system_prompt || '';
+
+        // Store original system prompt
+        originalSystemPrompt = data.system_prompt || '';
 
         // Disable the save button after initialization
         const saveButton = document.getElementById('save-knowledge-button');
