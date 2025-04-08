@@ -34,3 +34,8 @@ DASHSCOPE_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
 DASHSCOPE_LLM_MODEL="qwen2-0.5b-instruct"
 DASHSCOPE_EMB_MODEL=""
 DASHSCOPE_INTRO=""
+[Default]
+llmProvider="Ollama"
+llmModel="deepseek-r1:1.5b"
+embProvider="Ollama"
+embModel="deepseek-r1:1.5b"
