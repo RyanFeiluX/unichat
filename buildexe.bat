@@ -73,6 +73,7 @@ if exist "dist\unichat\local_docs" (
 )
 mkdir dist\unichat\local_docs && copy docs\QA.md dist\unichat\local_docs
 
-copy %CD%\README.md %CD%\dist\unichat
+copy %CD%\enduser_manual.md %CD%\dist\unichat
+copy %CD%\终端用户手册.md %CD%\dist\unichat
 copy %CD%\LICENSE %CD%\dist\unichat
 copy %CD%\metadata.yml %CD%\dist\unichat
