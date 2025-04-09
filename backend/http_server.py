@@ -171,8 +171,8 @@ async def save_config(options: ModelSelect):
         if not check_model_avail(options.emb_model):
             unavail_models.add(options.emb_model)
     if unavail_models:
-        logger.warning(f'Model(s) {",".join(unavail_models)} {"are" if len(unavail_models)>0 else "is"} not downloaded yet.')
-        return {"message": f'Configuration failed because model(s) {",".join(unavail_models)} {"are" if len(unavail_models)>0 else "is"} not downloaded yet.',
+        logger.warning(f'Model{"s" if len(unavail_models)>0 else ""} {",".join(unavail_models)} {"are" if len(unavail_models)>0 else "is"} not downloaded yet.')
+        return {"message": f'Configuration failed because model{"s" if len(unavail_models)>0 else ""} {",".join(unavail_models)} {"are" if len(unavail_models)>0 else "is"} not downloaded yet.',
                 "status_ok": False}
 
     # print(f'PUT: /api/models')
@@ -196,7 +196,7 @@ async def save_config(options: ModelSelect):
         f.write(tomlkit.dumps(dyn_config))
         f.flush()
 
-    return {"message": "Configuration updated successfully"}
+    return {"message": "Configuration updated successfully", "status_ok": True}
 
 
 def remove_useless(doc_list):
