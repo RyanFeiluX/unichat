@@ -124,8 +124,7 @@ function closeConfigModal() {
     console.log('hasUnsavedKnowledgeChanges:', hasUnsavedKnowledgeChanges);
     console.log('hasUnsavedDocumentListChanges:', hasUnsavedDocumentListChanges);
     if (hasUnsavedModelChanges || hasUnsavedKnowledgeChanges || hasUnsavedDocumentListChanges) {
-        const confirmDiscard = confirm('您有未保存的更改。是否要丢弃更改并关闭配置页面？');
-        if (confirmDiscard) {
+        showCustomAlert('确认', '您有未保存的更改。是否要丢弃更改并关闭配置页面？', () => {
             const configModal = document.getElementById('config-modal');
             configModal.style.display = 'none'; // Ensure the modal is hidden
 
@@ -169,7 +168,7 @@ function closeConfigModal() {
 
             hasUnsavedModelChanges = false;
             hasUnsavedKnowledgeChanges = false;
-        }
+        });
     } else {
         const configModal = document.getElementById('config-modal');
         configModal.style.display = 'none'; // Ensure the modal is hidden
@@ -349,7 +348,7 @@ function saveModelConfig() {
     };
 
     fetch(`${BASE_URL}/api/models`, {
-        method: 'PUT',
+        method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },

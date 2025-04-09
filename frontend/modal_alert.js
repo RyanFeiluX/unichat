@@ -1,4 +1,4 @@
-function showCustomAlert(title, message) {
+function showCustomAlert(title, message, callback = null) {
     // 创建模态框元素
     const modal = document.createElement('div');
     modal.classList.add('custom-alert-modal');
@@ -15,17 +15,34 @@ function showCustomAlert(title, message) {
     const modalMessage = document.createElement('p');
     modalMessage.textContent = message;
 
+    // 创建按钮容器
+    const buttonContainer = document.createElement('div');
+    buttonContainer.classList.add('button-container');
+
     // 创建关闭按钮元素
     const closeButton = document.createElement('button');
-    closeButton.textContent = '关闭';
+    closeButton.textContent = '继续';
+    closeButton.classList.add('custom-alert-close-button'); // Add class
     closeButton.addEventListener('click', () => {
         document.body.removeChild(modal);
     });
+    buttonContainer.appendChild(closeButton);
+
+    if (callback) {
+        const confirmButton = document.createElement('button');
+        confirmButton.textContent = '放弃';
+        confirmButton.classList.add('custom-alert-confirm-button'); // Add class
+        confirmButton.addEventListener('click', () => {
+            document.body.removeChild(modal);
+            callback();
+        });
+        buttonContainer.appendChild(confirmButton);
+    }
 
     // 将元素添加到模态框内容中
     modalContent.appendChild(modalTitle);
     modalContent.appendChild(modalMessage);
-    modalContent.appendChild(closeButton);
+    modalContent.appendChild(buttonContainer);
 
     // 将模态框内容添加到模态框中
     modal.appendChild(modalContent);

@@ -30,6 +30,9 @@ logger = setup_logging(logfile=os.path.join(app_root, 'run.log'))
 
 logger.info(f'APP ROOT: {app_root}')
 
+LOCAL_DOCS_DIR  = os.path.join(app_root, 'local_docs')
+logger.info(f'LOCAL_DOCS_DIR: {LOCAL_DOCS_DIR }')
+
 from rag_service import *
 
 try:
@@ -159,9 +162,12 @@ async def fetch_config():
            'emb_model': dcfg['Deployment']['EMB_MODEL']}
     return ModelConfig(model_support=options, model_select=sel)
 
+class ModelConfigResult(BaseModel):
+    message: str
+    status_ok: bool
 
 # API for http://127.0.0.1:8000/api/models
-@app.put("/api/models")  # Updated endpoint
+@app.post("/api/models", response_model=ModelConfigResult)  # Updated endpoint
 async def save_config(options: ModelSelect):
     unavail_models = set()
     if options.llm_provider == 'Ollama':
@@ -171,7 +177,7 @@ async def save_config(options: ModelSelect):
         if not check_model_avail(options.emb_model):
             unavail_models.add(options.emb_model)
     if unavail_models:
-        logger.warning(f'Model{"s" if len(unavail_models)>0 else ""} {",".join(unavail_models)} {"are" if len(unavail_models)>0 else "is"} not downloaded yet.')
+        logger.warning(f'Model{"s" if len(unavail_models)>1 else ""} {",".join(unavail_models)} {"are" if len(unavail_models)>0 else "is"} not downloaded yet.')
         return {"message": f'Configuration failed because model{"s" if len(unavail_models)>0 else ""} {",".join(unavail_models)} {"are" if len(unavail_models)>0 else "is"} not downloaded yet.',
                 "status_ok": False}
 
@@ -203,24 +209,24 @@ def remove_useless(doc_list):
     # Get the latest document list
     latest_documents = [doc.strip() for doc in doc_list]
 
-    # Get the path to the local_docs folder
-    local_docs_dir = os.path.join(app_root, 'local_docs')
-
     # Get the list of all files in the local_docs folder
-    all_files = os.listdir(local_docs_dir)
+    all_files = os.listdir(LOCAL_DOCS_DIR)
 
     # Identify the files that are not in the latest document list
     useless_files = [f for f in all_files if f not in latest_documents]
 
     # Remove the useless files
     for f in useless_files:
-        file_path = os.path.join(local_docs_dir, f)
+        file_path = os.path.join(LOCAL_DOCS_DIR, f)
         if os.path.isfile(file_path):
             os.remove(file_path)
             logger.info(f"Removed the useless: {file_path}")
 
+class UploadDocumentsResult(BaseModel):
+    message: str
+    status_ok: bool
 
-@app.post("/api/upload-documents")
+@app.post("/api/upload-documents", response_model=UploadDocumentsResult)
 async def upload_documents(documents: List[UploadFile] = File(...),
                            system_prompt: str = Form(...), document_list: str = Form(...)):
     try:
@@ -240,6 +246,8 @@ async def upload_documents(documents: List[UploadFile] = File(...),
             file_path = os.path.join(LOCAL_DOCS_DIR, document.filename)
             with open(file_path, "wb") as f:
                 f.write(await document.read())  # Save the uploaded file content
+                f.flush()
+                logger.info(f'{document.filename} is uploaded.')
             file_names.append(document.filename)
 
         # Update the document list
@@ -260,12 +268,16 @@ async def upload_documents(documents: List[UploadFile] = File(...),
             f.write(tomlkit.dumps(dyn_config))
             f.flush()
 
-        return {"message": "Documents and system prompt uploaded and saved successfully."}
+        return {"message": "Documents and system prompt uploaded and saved successfully.", "status_ok": True}
     except Exception as ee:
-        raise HTTPException(status_code=422, detail=f"Error uploading documents or saving system prompt: {str(ee)}")
+        logger.error(f"Exception in uploading documents or saving system prompt: {str(ee)}")
+        raise HTTPException(status_code=422, detail=f"Exception in uploading documents or saving system prompt: {str(ee)}")
 
+class DocumentsConfigResult(BaseModel):
+    message: str
+    status_ok: bool
 
-@app.post("/api/documents")
+@app.post("/api/documents", response_model=DocumentsConfigResult)
 async def update_documents(system_prompt: str = Form(...), document_list: str = Form(...)):
     try:
         # Update the document list
@@ -286,12 +298,15 @@ async def update_documents(system_prompt: str = Form(...), document_list: str = 
             f.write(tomlkit.dumps(dyn_config))
             f.flush()
 
-        return {"message": "Documents and system prompt uploaded and saved successfully."}
+        return {"message": "Documents and system prompt uploaded and saved successfully.", "status_ok": True}
     except Exception as ee:
         raise HTTPException(status_code=422, detail=f"Error uploading documents or saving system prompt: {str(ee)}")
 
+class DocumentFetchResult(BaseModel):
+    documents: list
+    system_prompt: str
 
-@app.get("/api/documents")
+@app.get("/api/documents", response_model=DocumentFetchResult)
 async def fetch_documents():
     try:
         # Fetch the list of documents and system prompt
@@ -303,7 +318,8 @@ async def fetch_documents():
             "system_prompt": system_prompt
         }
     except Exception as ee:
-        raise HTTPException(status_code=500, detail=f"Error fetching documents and system prompt: {str(ee)}")
+        logger.error(f'Exception in fetching documents and system prompt: {str(ee)}')
+        raise HTTPException(status_code=500, detail=f"Exception in fetching documents and system prompt: {str(ee)}")
 
 
 @app.on_event("startup")
