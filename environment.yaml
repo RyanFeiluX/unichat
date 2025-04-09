@@ -140,7 +140,7 @@ dependencies:
   - pip:
       - dashscope==1.22.1
       - langchain==0.3.20
-      - langchain-community==0.3.20
+      - langchain-community==0.3.9
       - langchain-core==0.3.46
       - langchain-deepseek==0.1.2
       - langchain-ollama==0.2.3
@@ -149,8 +149,10 @@ dependencies:
       - openai==1.66.3
       - pandoc==2.4
       - pillow==11.2.0
+      - pipe-subprocess==0.3.7
       - plumbum==1.9.0
       - ply==3.11
+      - psutil==7.0.0
       - pydantic==2.9.2
       - pydantic-settings==2.8.1
       - pyinstaller-versionfile==3.0.0
