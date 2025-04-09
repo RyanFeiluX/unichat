@@ -12,6 +12,11 @@ let originalEmbeddingProvider;
 let originalEmbeddingModel;
 let originalSystemPrompt;
 
+// Add a variable to store the original document list
+let originalDocumentList = [];
+// Add a flag to indicate if the document list has changed
+let hasUnsavedDocumentListChanges = false;
+
 function sendMessage() {
     const userInput = document.getElementById('user-input').value;
     if (userInput.trim() === "") return;
@@ -117,7 +122,8 @@ function openConfigModal() {
 function closeConfigModal() {
     console.log('hasUnsavedModelChanges:', hasUnsavedModelChanges);
     console.log('hasUnsavedKnowledgeChanges:', hasUnsavedKnowledgeChanges);
-    if (hasUnsavedModelChanges || hasUnsavedKnowledgeChanges) {
+    console.log('hasUnsavedDocumentListChanges:', hasUnsavedDocumentListChanges);
+    if (hasUnsavedModelChanges || hasUnsavedKnowledgeChanges || hasUnsavedDocumentListChanges) {
         const confirmDiscard = confirm('您有未保存的更改。是否要丢弃更改并关闭配置页面？');
         if (confirmDiscard) {
             const configModal = document.getElementById('config-modal');
@@ -134,6 +140,28 @@ function closeConfigModal() {
 
             // Rollback knowledge tab system prompt
             document.getElementById('system-prompt').value = originalSystemPrompt;
+
+            // Rollback document list
+            if (hasUnsavedDocumentListChanges) {
+                revertDocumentList(originalDocumentList)
+//                const tableBody = document.querySelector('#selected-files tbody');
+//                tableBody.innerHTML = ''; // Clear existing rows
+//                if (originalDocumentList.length > 0) {
+//                    originalDocumentList.forEach(doc => {
+//                        const row = document.createElement('tr');
+//                        row.innerHTML = `<td>${doc}</td>`;
+//                        row.onclick = () => toggleRowSelection(row); // Add click event for selection
+//                        tableBody.appendChild(row);
+//                    });
+//                } else {
+//                    const emptyRow = document.createElement('tr');
+//                    emptyRow.className = 'empty-row';
+//                    emptyRow.innerHTML = `<td>暂无文档</td>`;
+//                    tableBody.appendChild(emptyRow);
+//                }
+//                accumulatedFilePaths = originalDocumentList.slice();
+//                hasUnsavedDocumentListChanges = false;
+            }
 
             // Disable save buttons
             disableSaveButton('model-tab');
@@ -373,6 +401,28 @@ function triggerFileInput() {
     document.getElementById('document-input').click();
 }
 
+function populateDocumentList(documentList) {
+    const tableBody = document.querySelector('#selected-files tbody');
+        tableBody.innerHTML = ''; // Clear existing rows
+        if (documentList.length > 0) {
+            documentList.forEach(doc => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${doc}</td>`;
+                row.onclick = () => toggleRowSelection(row); // Add click event for selection
+                tableBody.appendChild(row);
+
+                // Add the document name to accumulatedFilePaths
+                accumulatedFilePaths.push(doc);
+            });
+        } else {
+            // Add a placeholder row if no documents exist
+            const emptyRow = document.createElement('tr');
+            emptyRow.className = 'empty-row';
+            emptyRow.innerHTML = `<td>暂无文档</td>`;
+            tableBody.appendChild(emptyRow);
+        }
+}
+
 function addDocuments() {
     const input = document.getElementById('document-input');
     const tableBody = document.querySelector('#selected-files tbody');
@@ -415,6 +465,9 @@ function addDocuments() {
         }
 
         enableSaveButton('knowledge-tab');
+
+        // Set the flag to indicate that the document list has changed
+        hasUnsavedDocumentListChanges = true;
     });
 
     input.value = ''; // Clear the input
@@ -437,10 +490,14 @@ function deleteSelectedFile() {
             accumulatedFilePaths.splice(index, 1);
         }
         updateDeleteButtonState(); // Update the delete button state
+
+        enableSaveButton('knowledge-tab');
+
+        // Set the flag to indicate that the document list has changed
+        hasUnsavedDocumentListChanges = true;
     } else {
         showCustomAlert('提示', '请先选择一个文档');
     }
-    enableSaveButton('knowledge-tab');
 }
 
 function clearSelectedFiles() {
@@ -456,6 +513,27 @@ function clearSelectedFiles() {
     tableBody.appendChild(emptyRow);
 
     updateDeleteButtonState(); // Update the delete button state
+}
+
+function revertDocumentList() {
+    populateDocumentList(originalDocumentList)
+//    const tableBody = document.querySelector('#selected-files tbody');
+//    tableBody.innerHTML = ''; // Clear existing rows
+//    if (originalDocumentList.length > 0) {
+//        originalDocumentList.forEach(doc => {
+//            const row = document.createElement('tr');
+//            row.innerHTML = `<td>${doc}</td>`;
+//            row.onclick = () => toggleRowSelection(row); // Add click event for selection
+//            tableBody.appendChild(row);
+//        });
+//    } else {
+//        const emptyRow = document.createElement('tr');
+//        emptyRow.className = 'empty-row';
+//        emptyRow.innerHTML = `<td>暂无文档</td>`;
+//        tableBody.appendChild(emptyRow);
+//    }
+    accumulatedFilePaths = originalDocumentList.slice();
+    hasUnsavedDocumentListChanges = false;
 }
 
 function saveKnowledgeBase() {
@@ -507,6 +585,9 @@ function saveKnowledgeBase() {
         // Append the new document list to the form data
         formData.append('document_list', accumulatedFilePaths.join(','));
 
+        let path_sufix;
+        let target_cn;
+        let target_en;
         if(docCnt > 0) {
             path_sufix = 'upload-documents'
             target_cn = '文档和系统提示词'
@@ -523,9 +604,14 @@ function saveKnowledgeBase() {
         .then(response => {
             if (response.ok) {
                 selectedDocumentsContent = []
-//                alert(`${target_cn}已成功上传到服务器并保存。`);
                 showCustomAlert('成功', `${target_cn}已成功上传到服务器并保存。`);
                 disableSaveButton('knowledge-tab'); // Disable save button after saving
+
+                // Update original values after successful save
+                originalSystemPrompt = systemPrompt;
+                originalDocumentList = accumulatedFilePaths.slice();
+                hasUnsavedKnowledgeChanges = false;
+                hasUnsavedDocumentListChanges = false;
             } else {
                 response.text().then(errorText => {
                     throw new Error(`Failed to upload ${target_en} to the server. ${errorText}`);
@@ -533,12 +619,16 @@ function saveKnowledgeBase() {
             }
         })
         .catch(error => {
-            console.error('Error during document upload:', error);
-//            alert(`上传文档(清单)和系统提示词时出错: ${error.message}`);
-            showCustomAlert('错误', `上传文档(清单)和系统提示词时出错: ${error.message}`);
+            if (error instanceof TypeError) {
+                console.error('Network error:', error);
+                showCustomAlert('错误', '网络错误，请检查您的网络连接。');
+            } else {
+                console.error('Error during document upload:', error);
+                showCustomAlert('错误', `上传文档(清单)和系统提示词时出错: ${error.message}`);
+            }
         });
     } catch (error) {
-//        console.error('Error:', error);
+        console.error('Error in saving knowledge base:', error);
         showCustomAlert('异常', error.message);
     }
 }
@@ -567,29 +657,33 @@ function initializeKnowledgeTab() {
     .then(response => response.json())
     .then(data => {
         // Populate the document list
-        const tableBody = document.querySelector('#selected-files tbody');
-        tableBody.innerHTML = ''; // Clear existing rows
-        if (data.documents.length > 0) {
-            data.documents.forEach(doc => {
-                const row = document.createElement('tr');
-                row.innerHTML = `<td>${doc}</td>`;
-                row.onclick = () => toggleRowSelection(row); // Add click event for selection
-                tableBody.appendChild(row);
-
-                // Add the document name to accumulatedFilePaths
-                accumulatedFilePaths.push(doc);
-            });
-        } else {
-            // Add a placeholder row if no documents exist
-            const emptyRow = document.createElement('tr');
-            emptyRow.className = 'empty-row';
-            emptyRow.innerHTML = `<td>暂无文档</td>`;
-            tableBody.appendChild(emptyRow);
-        }
+        populateDocumentList(data.documents)
+//        const tableBody = document.querySelector('#selected-files tbody');
+//        tableBody.innerHTML = ''; // Clear existing rows
+//        if (data.documents.length > 0) {
+//            data.documents.forEach(doc => {
+//                const row = document.createElement('tr');
+//                row.innerHTML = `<td>${doc}</td>`;
+//                row.onclick = () => toggleRowSelection(row); // Add click event for selection
+//                tableBody.appendChild(row);
+//
+//                // Add the document name to accumulatedFilePaths
+//                accumulatedFilePaths.push(doc);
+//            });
+//        } else {
+//            // Add a placeholder row if no documents exist
+//            const emptyRow = document.createElement('tr');
+//            emptyRow.className = 'empty-row';
+//            emptyRow.innerHTML = `<td>暂无文档</td>`;
+//            tableBody.appendChild(emptyRow);
+//        }
 
         // Populate the system prompt
         const systemPrompt = document.getElementById('system-prompt');
         systemPrompt.value = data.system_prompt || '';
+
+        // Store the original document list
+        originalDocumentList = data.documents;
 
         // Store original system prompt
         originalSystemPrompt = data.system_prompt || '';
