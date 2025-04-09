@@ -125,11 +125,11 @@ function closeConfigModal() {
 
             // Rollback model tab selections
             document.getElementById('llm-provider').value = originalLlmProvider;
+            updateLlmModels();
             document.getElementById('llm-model').value = originalLlmModel;
             document.getElementById('embedding-provider').value = originalEmbeddingProvider;
-            document.getElementById('embedding-model').value = originalEmbeddingModel;
-            updateLlmModels();
             updateEmbeddingModels();
+            document.getElementById('embedding-model').value = originalEmbeddingModel;
             updateProviderDescription();
 
             // Rollback knowledge tab system prompt
