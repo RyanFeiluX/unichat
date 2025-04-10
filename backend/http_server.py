@@ -24,10 +24,10 @@ from ollama_setting import OllamaSetting
 
 
 if getattr(sys, 'frozen', False):
-    # 如果是PyInstaller打包的exe
+    # If it is a PyInstaller packaged executable
     app_root = os.path.abspath(os.path.dirname(sys.executable))
 else:
-    # 普通的Python脚本
+    # For a normal Python script
     app_root = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
 # Configure logging
@@ -51,7 +51,7 @@ logger.info(f'LOCAL_DOCS_DIR: {LOCAL_DOCS_DIR }')
 from rag_service import *
 
 try:
-    # 打开并读取.yml文件
+    # Open and read the .yml file
     with open(os.path.join(app_root, 'metadata.yml'), 'r') as file:
         metadata = yaml.safe_load(file)
     version = metadata['Version'].strip()
@@ -163,7 +163,6 @@ class ModelConfig(BaseModel):
 # API for http://127.0.0.1:8000/api/models
 @app.get("/api/models", response_model=ModelConfig)  # Updated endpoint
 async def fetch_config():
-    # print(f'GET: /api/models')
     options: list = []
     for p in scfg['Providers'].keys():
         options.append({'provider': p,
@@ -196,7 +195,6 @@ async def save_config(options: ModelSelect):
         return {"message": f'Configuration failed because model{"s" if len(unavail_models)>0 else ""} {",".join(unavail_models)} {"are" if len(unavail_models)>0 else "is"} not downloaded yet.',
                 "status_ok": False}
 
-    # print(f'PUT: /api/models')
     dcfg['Deployment']['LLM_PROVIDER'] = options.llm_provider
     dcfg['Deployment']['LLM_MODEL'] = options.llm_model
     dcfg['Deployment']['EMB_PROVIDER'] = options.emb_provider
@@ -399,7 +397,7 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     try:
-        # 在这里执行应用关闭时需要做的操作，如关闭数据库连接等
+        # Necessary operations, like disconnecting database.
         logger.info("Clean up resources")
     except asyncio.exceptions.CancelledError:
         logger.info("Async task cancelled during shutdown. Ignoring...")
@@ -511,7 +509,7 @@ if os.name == 'nt':
     win32api.SetConsoleCtrlHandler(console_ctrl_handler, True)
 
 
-from console_window import CustomConsole, CustomConsoleWriter
+# from console_window import CustomConsole, CustomConsoleWriter
 from utils import running_in_pycharm, pycharm_hosted
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

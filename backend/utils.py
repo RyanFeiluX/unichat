@@ -21,11 +21,7 @@ def pycharm_hosted():
 def check_model_avail(model_name):
     if not model_name:
         return False
-    available_models = ollama.list()  # 获取本地模型列表
+    available_models = ollama.list()  # Get local model list
     model_names = [m.model for m in available_models.models]
     return model_name in model_names
 
-# if running_in_pycharm():
-#     print("应用程序正在 PyCharm 的终端中运行。")
-# else:
-#     print("应用程序正在其他终端中运行。")
