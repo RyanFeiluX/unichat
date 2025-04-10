@@ -351,12 +351,12 @@ def update_tray_menu(visible, q_action):
     else:
         q_action.setText('Show Console')
 
-osetting = OllamaSetting(logger)
+osetting = OllamaSetting(logger, app_root)
 
 # Function to create and show the system tray icon
 def create_system_tray(win_handler):
     # Create a system tray icon
-    icon_path = os.path.join(app_root, "resources", "icon3.png")
+    icon_path = os.path.join(app_root, "resources", "icon2.png")
     if not os.path.exists(icon_path):
         logger.error(f"Icon file {icon_path} not found.")
     else:
@@ -538,6 +538,13 @@ if __name__ == "__main__":
 
     # global qapp
     qapp = QApplication(sys.argv)
+
+    # Set the application icon
+    icon_path = os.path.join(app_root, "resources", "icon2.ico")
+    if os.path.exists(icon_path):
+        qapp.setWindowIcon(QIcon(icon_path))
+    else:
+        logger.warning(f"Icon file {icon_path} not found. Using default icon.")
 
     pych_context = running_in_pycharm()
     pych_hosted = pycharm_hosted()

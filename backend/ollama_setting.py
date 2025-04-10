@@ -3,11 +3,13 @@ import shutil
 from PyQt5.QtWidgets import (QApplication, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QFileDialog,
                              QMessageBox, QProgressDialog, QLineEdit, QSpacerItem, QSizePolicy)
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon
 
 
 class OllamaSetting:
-    def __init__(self, logger):
+    def __init__(self, logger, app_root):
         self.logger = logger
+        self.app_root = app_root
 
     # Function to move files from old directory to new directory with progress indication
     def move_files(self, old_dir, new_dir):
@@ -60,6 +62,13 @@ class OllamaSetting:
         settings_window.setWindowFlags(settings_window.windowFlags() & ~Qt.WindowCloseButtonHint)
         settings_window.setWindowFlags(settings_window.windowFlags() & ~Qt.WindowMaximizeButtonHint)
         settings_window.setWindowFlags(settings_window.windowFlags() & ~Qt.WindowMinimizeButtonHint)
+
+        # Set the window icon
+        icon_path = os.path.join(self.app_root, "resources", "ollama.png")
+        if os.path.exists(icon_path):
+            settings_window.setWindowIcon(QIcon(icon_path))
+        else:
+            self.logger.warning(f"Icon file {icon_path} not found. Using default icon.")
 
         main_layout = QVBoxLayout()
 
