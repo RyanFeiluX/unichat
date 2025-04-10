@@ -2,7 +2,7 @@
 
 ; HM NIS Edit Wizard helper defines
 !define PRODUCT_NAME "UniChat"
-!define PRODUCT_VERSION "0.0.1.2"
+!define PRODUCT_VERSION "0.0.1.3"
 !define PRODUCT_PUBLISHER "Ryan Xiao"
 !define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\UniChat.exe"
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
@@ -41,7 +41,7 @@ var ICONS_GROUP
 !insertmacro MUI_PAGE_INSTFILES
 ; Finish page
 !define MUI_FINISHPAGE_RUN "$INSTDIR\UniChat.exe"
-!define MUI_FINISHPAGE_SHOWREADME "$INSTDIR\README.md"
+!define MUI_FINISHPAGE_SHOWREADME "$INSTDIR\终端用户手册.md"
 !insertmacro MUI_PAGE_FINISH
 
 ; Uninstaller pages
@@ -70,17 +70,18 @@ Section "MainSection" SEC01
   File "dist\UniChat\backend\dyn_config.toml"
   File "dist\UniChat\backend\factory.toml"
   File "dist\UniChat\backend\sta_config.toml"
+  SetOutPath "$INSTDIR"
+  File "dist\UniChat\enduser_manual.md"
   SetOutPath "$INSTDIR\frontend"
   File "dist\UniChat\frontend\index.html"
   File "dist\UniChat\frontend\marked.min.js"
+  File "dist\UniChat\frontend\modal_alert.js"
   File "dist\UniChat\frontend\scripts.js"
   File "dist\UniChat\frontend\styles.css"
   SetOutPath "$INSTDIR"
   File "dist\UniChat\LICENSE"
   SetOutPath "$INSTDIR\local_docs"
   File "dist\UniChat\local_docs\QA.md"
-  SetOutPath "$INSTDIR"
-  File "dist\UniChat\README.md"
   SetOutPath "$INSTDIR"
   File "dist\UniChat\metadata.yml"
   SetOutPath "$INSTDIR\resources"
@@ -360,6 +361,8 @@ Section "MainSection" SEC01
   File "dist\UniChat\_internal\PIL\_webp.cp310-win_amd64.pyd"
   SetOutPath "$INSTDIR\_internal\propcache"
   File "dist\UniChat\_internal\propcache\_helpers_c.cp310-win_amd64.pyd"
+  SetOutPath "$INSTDIR\_internal\psutil"
+  File "dist\UniChat\_internal\psutil\_psutil_windows.pyd"
   SetOutPath "$INSTDIR\_internal\pydantic_core"
   File "dist\UniChat\_internal\pydantic_core\_pydantic_core.cp310-win_amd64.pyd"
   SetOutPath "$INSTDIR\_internal"
@@ -1576,19 +1579,14 @@ Section "MainSection" SEC01
   File "dist\UniChat\_internal\_tkinter.pyd"
   File "dist\UniChat\_internal\_uuid.pyd"
   File "dist\UniChat\_internal\_zoneinfo.pyd"
+  SetOutPath "$INSTDIR"
+  File "dist\UniChat\终端用户手册.md"
 
 ; Shortcuts
   !insertmacro MUI_STARTMENU_WRITE_BEGIN Application
   CreateDirectory "$SMPROGRAMS\$ICONS_GROUP"
   CreateShortCut "$SMPROGRAMS\$ICONS_GROUP\UniChat.lnk" "$INSTDIR\UniChat.exe"
   CreateShortCut "$DESKTOP\UniChat.lnk" "$INSTDIR\UniChat.exe"
-  !insertmacro MUI_STARTMENU_WRITE_END
-SectionEnd
-
-Section -AdditionalIcons
-  SetOutPath $INSTDIR
-  !insertmacro MUI_STARTMENU_WRITE_BEGIN Application
-  CreateShortCut "$SMPROGRAMS\$ICONS_GROUP\Uninstall.lnk" "$INSTDIR\uninst.exe"
   !insertmacro MUI_STARTMENU_WRITE_END
 SectionEnd
 
@@ -1617,6 +1615,7 @@ FunctionEnd
 Section Uninstall
   !insertmacro MUI_STARTMENU_GETFOLDER "Application" $ICONS_GROUP
   Delete "$INSTDIR\uninst.exe"
+  Delete "$INSTDIR\终端用户手册.md"
   Delete "$INSTDIR\_internal\_zoneinfo.pyd"
   Delete "$INSTDIR\_internal\_uuid.pyd"
   Delete "$INSTDIR\_internal\_tkinter.pyd"
@@ -2744,6 +2743,7 @@ Section Uninstall
   Delete "$INSTDIR\_internal\pymupdf\mupdfcpp64.dll"
   Delete "$INSTDIR\_internal\pyexpat.pyd"
   Delete "$INSTDIR\_internal\pydantic_core\_pydantic_core.cp310-win_amd64.pyd"
+  Delete "$INSTDIR\_internal\psutil\_psutil_windows.pyd"
   Delete "$INSTDIR\_internal\propcache\_helpers_c.cp310-win_amd64.pyd"
   Delete "$INSTDIR\_internal\PIL\_webp.cp310-win_amd64.pyd"
   Delete "$INSTDIR\_internal\PIL\_imagingtk.cp310-win_amd64.pyd"
@@ -2968,18 +2968,19 @@ Section Uninstall
   Delete "$INSTDIR\resources\icon3.ico"
   Delete "$INSTDIR\resources\icon1.ico"
   Delete "$INSTDIR\resources\gear-icon.png"
-  Delete "$INSTDIR\README.md"
+  Delete "$INSTDIR\metadata.yml"
   Delete "$INSTDIR\local_docs\QA.md"
   Delete "$INSTDIR\LICENSE"
   Delete "$INSTDIR\frontend\styles.css"
   Delete "$INSTDIR\frontend\scripts.js"
+  Delete "$INSTDIR\frontend\modal_alert.js"
   Delete "$INSTDIR\frontend\marked.min.js"
   Delete "$INSTDIR\frontend\index.html"
+  Delete "$INSTDIR\enduser_manual.md"
   Delete "$INSTDIR\backend\sta_config.toml"
   Delete "$INSTDIR\backend\factory.toml"
   Delete "$INSTDIR\backend\dyn_config.toml"
 
-  Delete "$SMPROGRAMS\$ICONS_GROUP\Uninstall.lnk"
   Delete "$DESKTOP\UniChat.lnk"
   Delete "$SMPROGRAMS\$ICONS_GROUP\UniChat.lnk"
 
@@ -3048,6 +3049,7 @@ Section Uninstall
   RMDir "$INSTDIR\_internal\PyQt5"
   RMDir "$INSTDIR\_internal\pymupdf"
   RMDir "$INSTDIR\_internal\pydantic_core"
+  RMDir "$INSTDIR\_internal\psutil"
   RMDir "$INSTDIR\_internal\propcache"
   RMDir "$INSTDIR\_internal\PIL"
   RMDir "$INSTDIR\_internal\orjson"
