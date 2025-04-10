@@ -14,12 +14,13 @@ from PyQt5.QtCore import QMetaObject, Qt
 import threading
 import asyncio
 import webbrowser
-import signal
+# import signal
 import win32gui, win32api, win32con
 from utils import check_model_avail
 # import win32console  # Import win32console to access the console buffer
 from logging_config import setup_logging
 import time
+from ollama_setting import OllamaSetting
 
 
 if getattr(sys, 'frozen', False):
@@ -352,6 +353,7 @@ def update_tray_menu(visible, q_action):
     else:
         q_action.setText('Show Console')
 
+osetting = OllamaSetting(logger)
 
 # Function to create and show the system tray icon
 def create_system_tray(win_handler):
@@ -365,6 +367,10 @@ def create_system_tray(win_handler):
 
         # Create a menu for the system tray icon
         tray_menu = QMenu()
+
+        ollama_action = QAction('Ollama Setting', tray_menu)
+        ollama_action.triggered.connect(osetting.open_ollama_settings)
+        tray_menu.addAction(ollama_action)
 
         console_action = QAction('Hide Console', tray_menu)
         console_action.triggered.connect(lambda action: toggle_console_state(win_handler, console_action))
