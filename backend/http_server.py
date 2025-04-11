@@ -370,7 +370,8 @@ def create_system_tray(win_handler):
         ollama_action.triggered.connect(osetting.open_ollama_settings)
         tray_menu.addAction(ollama_action)
 
-        console_action = QAction('Hide Console', tray_menu)
+        wv = win32gui.IsWindowVisible(hwnd)
+        console_action = QAction('Hide Console' if wv else 'Show Console', tray_menu)
         console_action.triggered.connect(lambda action: toggle_console_state(win_handler, console_action))
         tray_menu.addAction(console_action)
 
