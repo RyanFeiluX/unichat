@@ -6,13 +6,10 @@ UniChat is an intelligent assistant application that combines multiple large lan
 ## II. Installation
 
 ### 2.1 Obtaining the Installation Package
-UniChat is distributed as an installation package. After the package is built, a directory named `dist\unichat` will be generated. You can copy this directory to the device where you want to install the application.
+UniChat is distributed as an installation package. You can get its installation package from a public location.
 
 ### 2.2 Starting the Application
-After copying the `dist\unichat` directory to the target device, simply double - click the `UniChat.exe` file in this directory to start the application. Once started, a custom console window will pop up, and the application will start an HTTP server in the background. You can access the chat interface by entering the following URL in your browser:
-```plaintext
-http://localhost:63342/unichat/frontend/index.html
-```
+After installation, you can launch the application as the other ordinate application. Once started, a console window will pop up, and the application will start an HTTP server. A few seconds later, a webpage is automatically opened for you. You can start your operation from the web page. 
 
 ## III. Configuration
 
@@ -28,16 +25,28 @@ DASHSCOPE_API_KEY=
 You need to fill in the corresponding API keys in the appropriate fields according to your needs. If you don't have the relevant API keys, you can contact the corresponding providers to apply for them.
 Note: .env is optional. Alternatively, you can fill your API keys to the environment variables.
 
-### 3.2 Knowledge Base Configuration
+### 3.2 Deployment Configuration
+![img_1.png](resources\unichat1.png)
+![img_2.png](resources\unichat2.png)
 
-### 3.3 Deployment Configuration
+### 3.3 Knowledge Base Configuration
+![img_3.png](resources\unichat3.png)
 
 You can choose the appropriate LLM provider and model, as well as the embedding vector provider and model, according to your needs. If the `LLM_MODEL` or `EMB_MODEL` field is empty, the application will use the default model defined in the provider section.
+
+### 3.4 Ollama Installation
+Before you can start your chat, you need download and install Ollama application.
+
+### 3.5 Models downloading
+The application is characterized of local model deployment. As a result, you also need download specific LLM models.
+LLM models often have large size. You might want to specify a specific location for them. You can open Ollama Setting from system tray and specify the specific location.
+![img_4.png](resources\unichat4.png)
+![img_5.png](resources\unichat5.png)
 
 ## IV. Usage Instructions
 
 ### 4.1 Starting the Chat Interface
-After starting the application, enter `http://localhost:63342/unichat/frontend/index.html` in your browser to open the chat interface.
+After starting the application, enter `http://localhost:63342/unichat/frontend/index.html` in your browser to open the chat interface. Actually, the interface is automatically opened during launching the application.
 
 ### 4.2 Asking Questions and Getting Answers
 Enter your question in the input box on the chat interface and click the "Send" button. The application will send the question to the intelligent assistant, and the answer will be displayed in the chat window.
