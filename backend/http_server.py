@@ -1,4 +1,6 @@
 import os, sys, re
+import argparse
+import psutil
 import yaml
 import uvicorn
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
@@ -8,25 +10,38 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction
 from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import QMetaObject, Qt
 import threading
+import asyncio
 import webbrowser
-import signal
+# import signal
 import win32gui, win32api, win32con
 from utils import check_model_avail
 # import win32console  # Import win32console to access the console buffer
-from logging_config import setup_logging, redirect_stream, CustomStream
+from logging_config import setup_logging
 import time
+from ollama_setting import OllamaSetting
 
 
 if getattr(sys, 'frozen', False):
-    # 如果是PyInstaller打包的exe
+    # If it is a PyInstaller packaged executable
     app_root = os.path.abspath(os.path.dirname(sys.executable))
 else:
-    # 普通的Python脚本
+    # For a normal Python script
     app_root = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
 # Configure logging
 logger = setup_logging(logfile=os.path.join(app_root, 'run.log'))
+
+current_process = psutil.Process(os.getpid())
+process_name = os.path.normcase(current_process.name())
+cnt_found = 0
+for proc in psutil.process_iter(['name']):
+    p_name = os.path.normcase(proc.info['name'])
+    if p_name == process_name and proc.pid != current_process.pid:
+        logger.warning(f'Another running instance(PID={proc.pid}) is detected. Exiting...')
+        sys.exit(0)
+
 
 logger.info(f'APP ROOT: {app_root}')
 
@@ -36,7 +51,7 @@ logger.info(f'LOCAL_DOCS_DIR: {LOCAL_DOCS_DIR }')
 from rag_service import *
 
 try:
-    # 打开并读取.yml文件
+    # Open and read the .yml file
     with open(os.path.join(app_root, 'metadata.yml'), 'r') as file:
         metadata = yaml.safe_load(file)
     version = metadata['Version'].strip()
@@ -148,7 +163,6 @@ class ModelConfig(BaseModel):
 # API for http://127.0.0.1:8000/api/models
 @app.get("/api/models", response_model=ModelConfig)  # Updated endpoint
 async def fetch_config():
-    # print(f'GET: /api/models')
     options: list = []
     for p in scfg['Providers'].keys():
         options.append({'provider': p,
@@ -181,7 +195,6 @@ async def save_config(options: ModelSelect):
         return {"message": f'Configuration failed because model{"s" if len(unavail_models)>0 else ""} {",".join(unavail_models)} {"are" if len(unavail_models)>0 else "is"} not downloaded yet.',
                 "status_ok": False}
 
-    # print(f'PUT: /api/models')
     dcfg['Deployment']['LLM_PROVIDER'] = options.llm_provider
     dcfg['Deployment']['LLM_MODEL'] = options.llm_model
     dcfg['Deployment']['EMB_PROVIDER'] = options.emb_provider
@@ -322,55 +335,14 @@ async def fetch_documents():
         raise HTTPException(status_code=500, detail=f"Exception in fetching documents and system prompt: {str(ee)}")
 
 
-@app.on_event("startup")
-async def startup_event():
-    webbrowser.open_new_tab(user_url)
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    # 在这里执行应用关闭时需要做的操作，如关闭数据库连接等
-    logger.info("Application shutdown")
-    # exit_app()
-
-
-server = None
-qapp = None
-
-# Function to start the uvicorn server
-def start_server(consoleWriter):
-    sys.stdout = consoleWriter
-    sys.stderr = consoleWriter
-
-    global server
-    logger.info(f'Start the server...')
-    # uvicorn.run(app, host="127.0.0.1", port=8000)
-    server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=8000))
-    server.run()
-
-
-# Function to stop the uvicorn server and quit the application
-def exit_app():
-    # global server_thread
-    # Here you need to add code to gracefully stop the uvicorn server
-    # Since uvicorn does not have a built - in way to stop the server from another thread,
-    # you can use a more complex solution like a signal or a flag to stop the server
-    global server
-    if server:
-        server.should_exit = True
-        server.force_exit = True
-    qapp = QApplication.instance()
-    if qapp:
-        qapp.quit()
-    if hwnd:
-        win32gui.CloseWindow(hwnd)
-    # logger.shutdown()
-    sys.exit(0)
-
-
-def toggle_console_state(con, q_action):
-    visible = con.toggle_visibility()
-    update_tray_menu(visible, q_action)
+def toggle_console_state(win_handler, q_action):
+    visible = win32gui.IsWindowVisible(win_handler)
+    if visible:
+        win32gui.ShowWindow(win_handler, win32con.SW_HIDE)
+        q_action.setText('Show Console')
+    else:
+        win32gui.ShowWindow(win_handler, win32con.SW_SHOW)
+        q_action.setText('Hide Console')
 
 def update_tray_menu(visible, q_action):
     # Update tray icon state
@@ -379,11 +351,12 @@ def update_tray_menu(visible, q_action):
     else:
         q_action.setText('Show Console')
 
+osetting = OllamaSetting(logger, app_root)
 
 # Function to create and show the system tray icon
-def create_system_tray(con):
+def create_system_tray(win_handler):
     # Create a system tray icon
-    icon_path = os.path.join(app_root, "resources", "icon3.png")
+    icon_path = os.path.join(app_root, "resources", "icon2.png")
     if not os.path.exists(icon_path):
         logger.error(f"Icon file {icon_path} not found.")
     else:
@@ -393,8 +366,12 @@ def create_system_tray(con):
         # Create a menu for the system tray icon
         tray_menu = QMenu()
 
+        ollama_action = QAction('Ollama Setting', tray_menu)
+        ollama_action.triggered.connect(osetting.open_ollama_settings)
+        tray_menu.addAction(ollama_action)
+
         console_action = QAction('Hide Console', tray_menu)
-        console_action.triggered.connect(lambda action: toggle_console_state(console, console_action))
+        console_action.triggered.connect(lambda action: toggle_console_state(win_handler, console_action))
         tray_menu.addAction(console_action)
 
         exit_action = QAction("Exit", tray_menu)
@@ -404,43 +381,107 @@ def create_system_tray(con):
         tray_icon.setContextMenu(tray_menu)
         tray_icon.show()
 
-        # Connect the visibilityChanged signal to the update_tray_menu function
-        console.visibilityChanged.connect(lambda visible: update_tray_menu(visible, console_action))
-
     sys.exit(qapp.exec_())
+
+
+server = None
+qapp = None
+hwnd = None
+
+
+@app.on_event("startup")
+async def startup_event():
+    webbrowser.open_new_tab(user_url)
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    try:
+        # Necessary operations, like disconnecting database.
+        logger.info("Clean up resources")
+    except asyncio.exceptions.CancelledError:
+        logger.info("Async task cancelled during shutdown. Ignoring...")
+
+
+# Function to start the uvicorn server
+def start_server():
+    global server
+    logger.info(f'Start the server...')
+    # uvicorn.run(app, host="127.0.0.1", port=8000)
+    server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=8000))
+    server.run()
+
+
+# Function to stop the uvicorn server and quit the application
+def exit_app():
+    global server, qapp, hwnd, mutex
+    try:
+        # Log the start of the shutdown process
+        logger.info("Starting graceful shutdown of the application...")
+
+        # Stop the Uvicorn server
+        if server:
+            logger.info("Stopping the Uvicorn server...")
+            server.should_exit = True
+            server.force_exit = True
+            # Wait for the server to stop
+            server_thread = next((t for t in threading.enumerate() if t.name == 'unichat_server'), None)
+            if server_thread:
+                server_thread.join()
+            logger.info("Uvicorn server stopped.")
+
+        # Quit the QApplication
+        if qapp:
+            logger.info("Quitting the QApplication...")
+            # qapp.quit()
+            QMetaObject.invokeMethod(qapp, 'quit', Qt.QueuedConnection)
+            logger.info("QApplication quit.")
+
+        # Close the console window
+        if hwnd:
+            logger.info("Closing the console window...")
+            win32gui.CloseWindow(hwnd)
+            logger.info("Console window closed.")
+
+        # Log the end of the shutdown process
+        logger.info("Application shut down gracefully.")
+
+    except Exception as e:
+        logger.error(f"Error in during shutdown: {e}")
+
+    # Exit the application
+    sys.exit(0)
 
 
 # Signal handler
 def signal_handler(sig, frame):
     _, _ = sig, frame
-    logger.info('You pressed Ctrl+C! Exiting...')
+    logger.info('Received Ctrl+C. Exiting application...')
     exit_app()
 
 
-signal.signal(signal.SIGINT, signal_handler)
-signal.signal(signal.SIGTERM, signal_handler)  # Unsupported on Windows
+# signal.signal(signal.SIGINT, signal_handler)  # SIGINT triggered by Ctrl+C
+# signal.signal(signal.SIGTERM, signal_handler)  # Sent to request a process to terminate gracefully. Unsupported on Windows
 
-hwnd = None
-
-# # Function to show the console window
-# def show_console_window():
-#     if os.name == 'nt':
-#         global hwnd
-#         # hwnd = win32gui.GetForegroundWindow()
-#         if win32gui.IsWindow(hwnd):
-#             win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
-#         elif hwnd:
-#             logger.critical(f'Target window handler is invalid.')
-#         else:
-#             logger.critical(f'Target window handler is unknown.')
+# Function to show the console window
+def show_console_window():
+    if os.name == 'nt':
+        global hwnd
+        # hwnd = win32gui.GetForegroundWindow()
+        if win32gui.IsWindow(hwnd):
+            win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
+        elif hwnd:
+            logger.critical(f'Target window handler is invalid.')
+        else:
+            logger.critical(f'Target window handler is unknown.')
 
 
-# # Hide the console window on Windows
-# def hide_console_window():
-#     if os.name == 'nt':
-#         global hwnd
-#         hwnd = win32gui.GetForegroundWindow()
-#         # win32gui.ShowWindow(hwnd, win32con.SW_MINIMIZE)
+# Hide the console window on Windows
+def hide_console_window():
+    if os.name == 'nt':
+        global hwnd
+        # hwnd = win32gui.GetForegroundWindow()
+        win32gui.ShowWindow(hwnd, win32con.SW_HIDE)
 
 
 # Function to handle console close event
@@ -457,84 +498,80 @@ def console_ctrl_handler(ctrl_type):
         logger.info('System is shutting down. Saving data...')
         exit_app()
         return True
-    # elif ctrl_type == win32con.CTRL_CLOSE_EVENT:
-    #     logger.info('You are closing the console window. It is about to be hidden to system tray.')
-    #     hide_console_window()
-    #     return True
-    return False
+    elif ctrl_type == win32con.CTRL_CLOSE_EVENT:
+        logger.info('You are closing the console window. Exiting...')
+        exit_app()
+        return True
+    return True
+
+if os.name == 'nt':
+    # Register the console control handler
+    win32api.SetConsoleCtrlHandler(console_ctrl_handler, True)
 
 
-# Register the console control handler
-# win32api.SetConsoleCtrlHandler(console_ctrl_handler, True)
-
-
-from console_window import CustomConsole, CustomConsoleWriter
+# from console_window import CustomConsole, CustomConsoleWriter
 from utils import running_in_pycharm, pycharm_hosted
 if __name__ == "__main__":
-    hwnd = win32gui.GetForegroundWindow()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dist-mode', dest='dist_mode', action='store_true',
+                        help="Distribution mode specified. Development mode by default.")
+    args = parser.parse_args()
+
+    max_retries = 5
+    retry_delay = 1  # 延迟1秒
+    for i in range(max_retries):
+        hwnd = win32gui.GetForegroundWindow()
+        if hwnd:
+            break
+        time.sleep(retry_delay)
+    # hwnd = win32gui.GetForegroundWindow()
     win32gui.SetWindowText(hwnd, 'UniChat Window')
+    win_text = win32gui.GetWindowText(hwnd)
+    if win_text != 'UniChat Window':
+        logger.warning(f'Failed to modify the window text: {win_text}')
+
+    # Disable the close button
+    style = win32gui.GetWindowLong(hwnd, win32con.GWL_STYLE)
+    style = style & ~win32con.WS_SYSMENU & ~win32con.WS_MINIMIZEBOX & ~win32con.WS_MAXIMIZEBOX
+    win32gui.SetWindowLong(hwnd, win32con.GWL_STYLE, style)
+    win32gui.SetWindowPos(hwnd, None, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_FRAMECHANGED)
 
     # global qapp
     qapp = QApplication(sys.argv)
 
-    # Create the custom console window
-    console = CustomConsole('UniChat Console')
-    console.show()
-
-    # Redirect the print output to the custom console window
-    sys.stdout = CustomConsoleWriter(console, logger)
-    sys.stderr = CustomConsoleWriter(console, logger)
-    redirect_stream(logger, CustomStream(console.get_text_edit()))
+    # Set the application icon
+    icon_path = os.path.join(app_root, "resources", "icon2.ico")
+    if os.path.exists(icon_path):
+        qapp.setWindowIcon(QIcon(icon_path))
+    else:
+        logger.warning(f"Icon file {icon_path} not found. Using default icon.")
 
     pych_context = running_in_pycharm()
     pych_hosted = pycharm_hosted()
     inPyCharm = pych_context or pych_hosted
     logger.info(f'PyCharm Context: {inPyCharm}')
 
-    # # Copy the content from the Windows console to the custom console
-    # if os.name == 'nt':
-    #     try:
-    #         _, pid = win32process.GetWindowThreadProcessId(hwnd)
-    #         win32console.AttachConsole(pid)
-    #         # Get the console screen buffer
-    #         screen_buffer = win32console.GetStdHandle(win32console.STD_OUTPUT_HANDLE)
-    #         # Get the console buffer info
-    #         buffer_info = screen_buffer.GetConsoleScreenBufferInfo()
-    #         # Calculate the number of lines and columns
-    #         lines = buffer_info['Size'].Y
-    #         columns = buffer_info['Size'].X
-    #         # Read the console buffer
-    #         console_text = screen_buffer.ReadConsoleOutputCharacter(columns * lines, 0, 0)
-    #         # Append the text to the custom console
-    #         console.append_text(console_text)
-    #     except Exception as e:
-    #         logger.error(f"Failed to copy console content: {repr(e)}")
-
     # Hide the default main console in case of Windows but not PyCharm environment.
-    if not inPyCharm and os.name == 'nt':
-        time.sleep(1)
-        # hwnd = win32gui.GetForegroundWindow()
-        win32gui.ShowWindow(hwnd, win32con.SW_HIDE)
-    console.setFocus()
+    if args.dist_mode and os.name == 'nt':
+        hide_console_window()
 
     # uvicorn.run('http_server:app', host="127.0.0.1", port=8000, reload=False)
     # Start the server in a separate thread
-    server_thread = threading.Thread(target=start_server, args=(sys.stdout,))
-    server_thread.daemon = True
+    server_thread = threading.Thread(target=start_server, name='unichat_server', daemon = True)
+    # server_thread.daemon = True
     server_thread.start()
 
     # Create and show the system tray icon
-    create_system_tray(console)
+    create_system_tray(hwnd)
 
     server_thread.join()
     logger.info("Exiting application...")
-    # sys.exit(qapp.exec_())
 
-    # Keep the main thread alive
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        logger.info("Exiting application...")
-        time.sleep(1)
+    # # Keep the main thread alive
+    # try:
+    #     while True:
+    #         time.sleep(1)
+    # except KeyboardInterrupt:
+    #     logger.info("Exiting application...")
+    #     time.sleep(1)
     sys.exit(qapp.exec_())

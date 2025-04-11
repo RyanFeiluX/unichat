@@ -9,7 +9,7 @@ from http_server import app_root
 # Configure logging
 logger = setup_logging(logfile=os.path.join(app_root, 'run.log'))
 
-# 注册 QTextCursor 类型
+# Register the QTextCursor type
 if QMetaType.type(QTextCursor.__name__) == 'QMetaType.UnknownType':
     QMetaType.registerNativeMetaType(QTextCursor.__name__, QTextCursor)
 logger.info(f'QTextCursor type Id: {QMetaType.type(QTextCursor.__name__)}')

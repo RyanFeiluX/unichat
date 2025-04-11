@@ -40,7 +40,7 @@ pyinstaller --onedir ^
             --collect-submodules langchain.chains ^
             --exclude-module pyinstaller ^
             --exclude-module pillow ^
-            --icon %CD%\resources\icon3.ico ^
+            --icon %CD%\resources\icon2.ico ^
             --version-file %CD%\version_info.txt ^
             %script%
 
