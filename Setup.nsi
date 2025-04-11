@@ -2,7 +2,7 @@
 
 ; HM NIS Edit Wizard helper defines
 !define PRODUCT_NAME "UniChat"
-!define PRODUCT_VERSION "0.0.1.4"
+!define PRODUCT_VERSION "0.0.1.5"
 !define PRODUCT_PUBLISHER "Ryan Xiao"
 !define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\UniChat.exe"
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
@@ -25,7 +25,7 @@
 ; Welcome page
 !insertmacro MUI_PAGE_WELCOME
 ; License page
-!define MUI_LICENSEPAGE_CHECKBOX
+!define MUI_LICENSEPAGE_RADIOBUTTONS
 !insertmacro MUI_PAGE_LICENSE "LICENSE"
 ; Directory page
 !insertmacro MUI_PAGE_DIRECTORY
@@ -41,6 +41,7 @@ var ICONS_GROUP
 !insertmacro MUI_PAGE_INSTFILES
 ; Finish page
 !define MUI_FINISHPAGE_RUN "$INSTDIR\UniChat.exe"
+!define MUI_FINISHPAGE_RUN_PARAMETERS "--dist-mode"
 !define MUI_FINISHPAGE_SHOWREADME "$INSTDIR\÷’∂À”√ªß ÷≤·.md"
 !insertmacro MUI_PAGE_FINISH
 
@@ -1590,6 +1591,12 @@ Section "MainSection" SEC01
   !insertmacro MUI_STARTMENU_WRITE_END
 SectionEnd
 
+Section -AdditionalIcons
+  !insertmacro MUI_STARTMENU_WRITE_BEGIN Application
+  CreateShortCut "$SMPROGRAMS\$ICONS_GROUP\Uninstall.lnk" "$INSTDIR\uninst.exe"
+  !insertmacro MUI_STARTMENU_WRITE_END
+SectionEnd
+
 Section -Post
   WriteUninstaller "$INSTDIR\uninst.exe"
   WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\UniChat.exe"
@@ -2964,9 +2971,9 @@ Section Uninstall
   Delete "$INSTDIR\_internal\aiohttp\_http_writer.cp310-win_amd64.pyd"
   Delete "$INSTDIR\_internal\aiohttp\_http_parser.cp310-win_amd64.pyd"
   Delete "$INSTDIR\UniChat.exe"
-  Delete "$INSTDIR\resources\icon3.png"
-  Delete "$INSTDIR\resources\icon3.ico"
-  Delete "$INSTDIR\resources\icon1.ico"
+  Delete "$INSTDIR\resources\ollama.png"
+  Delete "$INSTDIR\resources\icon2.png"
+  Delete "$INSTDIR\resources\icon2.ico"
   Delete "$INSTDIR\resources\gear-icon.png"
   Delete "$INSTDIR\metadata.yml"
   Delete "$INSTDIR\local_docs\QA.md"
@@ -2981,6 +2988,7 @@ Section Uninstall
   Delete "$INSTDIR\backend\factory.toml"
   Delete "$INSTDIR\backend\dyn_config.toml"
 
+  Delete "$SMPROGRAMS\$ICONS_GROUP\Uninstall.lnk"
   Delete "$DESKTOP\UniChat.lnk"
   Delete "$SMPROGRAMS\$ICONS_GROUP\UniChat.lnk"
 
