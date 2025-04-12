@@ -52,4 +52,9 @@ Deploy chatbot locally based on RAG technologies. Multiple LLM models are suppor
   * 使用 PyInstaller 打包后端脚本。
   * 复制配置文件、前端文件、资源文件和文档到打包目录。
 
-综上所述，这些代码文件共同构建了一个完整的智能助手应用程序，包括前端界面、后端服务、日志处理和打包部署等功能。
+### Setup.nsi
+* 功能：基于NSIS脚本语言的安装程序脚本，最后成一个单独的安装程序unichatSetup.exe.
+* 工具
+  * NSIS软件。[下载地址](https://nsis.sourceforge.io/Download)
+
+  * 综上所述，这些代码文件共同构建了一个完整的智能助手应用程序，包括前端界面、后端服务、日志处理和打包部署等功能。
