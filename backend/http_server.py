@@ -168,18 +168,7 @@ class ModelConfig(BaseModel):
 # API for http://127.0.0.1:8000/api/models
 @app.get("/api/models", response_model=ModelConfig)  # Updated endpoint
 async def fetch_config():
-    # options: list = []
-    # for p in scfg['Providers'].keys():
-    #     options.append({'provider': p,
-    #                     'llm_model': scfg['Providers'][p][f'{p.upper()}_LLM_MODEL'].split(','),
-    #                     'emb_model': scfg['Providers'][p][f'{p.upper()}_EMB_MODEL'].split(','),
-    #                     'prov_intro': scfg['Providers'][p][f'{p.upper()}_INTRO']}
-    #                    )
     options = reg_service.cfg.aggregate_provider_profile()
-    # sel = {'llm_provider': dcfg['Deployment']['LLM_PROVIDER'],
-    #        'llm_model': dcfg['Deployment']['LLM_MODEL'],
-    #        'emb_provider': dcfg['Deployment']['EMB_PROVIDER'],
-    #        'emb_model': dcfg['Deployment']['EMB_MODEL']}
     sel = reg_service.cfg.get_deployment_profile()
     return ModelConfig(model_support=options, model_select=sel)
 

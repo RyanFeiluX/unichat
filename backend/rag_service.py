@@ -219,7 +219,7 @@ class RagService():
                        你的任务是根据下述给定的已知信息回答用户问题。
                        确保你的回复完全依据下述已知信息，不要编造答案。
                        请用中文回答用户问题。
-                       你采用了{deployment.llm_provider}大语言模型{deployment.llm_model}。
+                       你采用了{deployment['llm_provider']}大语言模型{deployment['llm_model']}。
         
                        已知信息:""" +
                          """"{context} """)

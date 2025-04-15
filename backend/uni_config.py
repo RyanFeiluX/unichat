@@ -1,16 +1,17 @@
 import os, sys
 from pydantic import BaseModel
+from typing import List, Dict, Union
 from dotenv import load_dotenv, find_dotenv
 import toml
 import tomlkit  # Import tomlkit for round-trip parsing
 from utils import check_model_avail
 
 
-class DeploymentProfile():
-    llm_provider: str
-    llm_model: str
-    emb_provider: str
-    emb_model: str
+class DeploymentProfile(BaseModel):
+    llm_provider: str = None
+    llm_model: str = None
+    emb_provider: str = None
+    emb_model: str = None
 
 class UniConfig():
 
@@ -33,6 +34,7 @@ class UniConfig():
             _ = load_dotenv(dotenv_path=os.path.abspath(dotenv_path))
         else:
             logger.info(f'No dotenv found')
+        self.santize()
 
     def _validate(self):
         cfg_error_cnt = 0
@@ -203,12 +205,12 @@ class UniConfig():
                            )
         return options
 
-    def get_deployment_profile(self)->DeploymentProfile:
-        sel = DeploymentProfile()
-        sel.llm_provider= self.dcfg['Deployment']['LLM_PROVIDER']
-        sel.llm_model= self.dcfg['Deployment']['LLM_MODEL']
-        sel.emb_provider= self.dcfg['Deployment']['EMB_PROVIDER']
-        sel.emb_model= self.dcfg['Deployment']['EMB_MODEL']
+    def get_deployment_profile(self)->Dict[str, str]:
+        sel = dict()
+        sel['llm_provider']= self.dcfg['Deployment']['LLM_PROVIDER']
+        sel['llm_model']= self.dcfg['Deployment']['LLM_MODEL']
+        sel['emb_provider']= self.dcfg['Deployment']['EMB_PROVIDER']
+        sel['emb_model']= self.dcfg['Deployment']['EMB_MODEL']
         return sel
 
     def update_deployment_profile(self, options: DeploymentProfile):
