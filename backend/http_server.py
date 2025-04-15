@@ -50,10 +50,10 @@ logger.info(f'APP ROOT: {app_root}')
 
 
 from rag_service import RagService
-reg_service = RagService(app_root, logger)
-LOCAL_DOCS_DIR = reg_service.modconfig.local_docs_dir()
+rag_service = RagService(app_root, logger)
+LOCAL_DOCS_DIR = rag_service.modconfig.local_docs_dir()
 logger.info(f'LOCAL_DOCS_DIR: {LOCAL_DOCS_DIR }')
-msg_hist_chain = reg_service.setup_service()
+rag_service.setup_service()
 
 try:
     # Open and read the .yml file
@@ -103,8 +103,8 @@ async def ask_question(request: QuestionRequest):
 
         # Build answer through RAG chain
         # answer = qa_chain.run(user_question)
-        answer = msg_hist_chain.invoke({"input": user_question},
-                                       config={"configurable": {"session_id": session_id}})
+        answer = rag_service.msg_chain.invoke({"input": user_question},
+                                              config={"configurable": {"session_id": session_id}})
 
         ai_answer = answer['answer']
         ai_thinks = []
@@ -168,8 +168,8 @@ class ModelConfig(BaseModel):
 # API for http://127.0.0.1:8000/api/models
 @app.get("/api/models", response_model=ModelConfig)  # Updated endpoint
 async def fetch_config():
-    options = reg_service.cfg.aggregate_provider_profile()
-    sel = reg_service.cfg.get_deployment_profile()
+    options = rag_service.cfg.aggregate_provider_profile()
+    sel = rag_service.cfg.get_deployment_profile()
     return ModelConfig(model_support=options, model_select=sel)
 
 class ModelConfigResult(BaseModel):
@@ -191,7 +191,7 @@ async def save_config(options: ModelSelect):
         return {"message": f'Configuration failed because model{"s" if len(unavail_models)>0 else ""} {",".join(unavail_models)} {"are" if len(unavail_models)>0 else "is"} not downloaded yet.',
                 "status_ok": False}
 
-    reg_service.cfg.update_deployment_profile(options)
+    rag_service.cfg.update_deployment_profile(options)
 
     return {"message": "Configuration updated successfully", "status_ok": True}
 
@@ -246,7 +246,7 @@ async def upload_documents(documents: List[UploadFile] = File(...),
         remove_useless(documents)
         # You can further process the document_list here, like removing duplicates
 
-        reg_service.cfg.update_knowledge_base(documents=','.join(documents), robot_desc=system_prompt.strip())
+        rag_service.cfg.update_knowledge_base(documents=','.join(documents), robot_desc=system_prompt.strip())
 
         return {"message": "Documents and system prompt uploaded and saved successfully.", "status_ok": True}
     except Exception as ee:
@@ -265,7 +265,7 @@ async def update_documents(system_prompt: str = Form(...), document_list: str = 
         remove_useless(documents)
         # You can further process the document_list here, like removing duplicates
 
-        reg_service.cfg.update_knowledge_base(documents=','.join(documents), robot_desc=system_prompt.strip())
+        rag_service.cfg.update_knowledge_base(documents=','.join(documents), robot_desc=system_prompt.strip())
 
         return {"message": "Documents and system prompt uploaded and saved successfully.", "status_ok": True}
     except Exception as ee:
@@ -279,9 +279,9 @@ class DocumentFetchResult(BaseModel):
 async def fetch_documents():
     try:
         # Fetch the list of documents and system prompt
-        docs = reg_service.cfg.get_documents()
+        docs = rag_service.cfg.get_documents()
         documents = docs.split(',') if docs else []
-        system_prompt = reg_service.cfg.get_robot_desc()  #dcfg['Knowledge']['ROBOT_DESC']
+        system_prompt = rag_service.cfg.get_robot_desc()  #dcfg['Knowledge']['ROBOT_DESC']
 
         return {
             "documents": documents,
@@ -291,6 +291,12 @@ async def fetch_documents():
         logger.error(f'Exception in fetching documents and system prompt: {str(ee)}')
         raise HTTPException(status_code=500, detail=f"Exception in fetching documents and system prompt: {str(ee)}")
 
+class ChangesSuspended(BaseModel):
+    suspended: bool
+
+@app.get('/api/changes-suspended', response_model=ChangesSuspended)
+async def fetch_changes_suspended():
+    return {'suspended': rag_service.cfg.changes_suspended}
 
 def toggle_console_state(win_handler, q_action):
     visible = win32gui.IsWindowVisible(win_handler)

@@ -171,8 +171,12 @@ class RagService():
         self.app_root = app_root
         self.logger = logger
         self.cfg = UniConfig(app_root, logger)
-
         self.modconfig = ModelConfig(app_root, logger, self.cfg)
+        self._msg_chain = None
+
+    @property
+    def msg_chain(self):
+        return self._msg_chain
 
     def get_session_history(self, session_id) -> BaseChatMessageHistory:  # A key/session_id pair for a question/answer pair
         if session_id not in self.store:
@@ -241,4 +245,7 @@ class RagService():
             output_messages_key="answer",
         )
 
-        return msg_hist_chain
+        self._msg_chain = msg_hist_chain
+
+    def restart_service(self):
+        self.setup_service()
