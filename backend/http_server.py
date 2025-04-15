@@ -2,6 +2,7 @@ import os, sys, re
 import argparse
 import psutil
 import yaml
+from pydantic import BaseModel
 import uvicorn
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 import tomlkit  # Import tomlkit for round-trip parsing
@@ -33,6 +34,8 @@ else:
 # Configure logging
 logger = setup_logging(logfile=os.path.join(app_root, 'run.log'))
 
+logger.info(f'python version : {sys.version}')
+
 current_process = psutil.Process(os.getpid())
 process_name = os.path.normcase(current_process.name())
 cnt_found = 0
@@ -45,10 +48,12 @@ for proc in psutil.process_iter(['name']):
 
 logger.info(f'APP ROOT: {app_root}')
 
-LOCAL_DOCS_DIR  = os.path.join(app_root, 'local_docs')
-logger.info(f'LOCAL_DOCS_DIR: {LOCAL_DOCS_DIR }')
 
-from rag_service import *
+from rag_service import RagService
+reg_service = RagService(app_root, logger)
+LOCAL_DOCS_DIR = reg_service.modconfig.local_docs_dir()
+logger.info(f'LOCAL_DOCS_DIR: {LOCAL_DOCS_DIR }')
+msg_hist_chain = reg_service.setup_service()
 
 try:
     # Open and read the .yml file
@@ -98,8 +103,8 @@ async def ask_question(request: QuestionRequest):
 
         # Build answer through RAG chain
         # answer = qa_chain.run(user_question)
-        answer = msghist_chain.invoke({"input": user_question},
-                                      config={"configurable": {"session_id": session_id}})
+        answer = msg_hist_chain.invoke({"input": user_question},
+                                       config={"configurable": {"session_id": session_id}})
 
         ai_answer = answer['answer']
         ai_thinks = []
@@ -163,17 +168,19 @@ class ModelConfig(BaseModel):
 # API for http://127.0.0.1:8000/api/models
 @app.get("/api/models", response_model=ModelConfig)  # Updated endpoint
 async def fetch_config():
-    options: list = []
-    for p in scfg['Providers'].keys():
-        options.append({'provider': p,
-                        'llm_model': scfg['Providers'][p][f'{p.upper()}_LLM_MODEL'].split(','),
-                        'emb_model': scfg['Providers'][p][f'{p.upper()}_EMB_MODEL'].split(','),
-                        'prov_intro': scfg['Providers'][p][f'{p.upper()}_INTRO']}
-                       )
-    sel = {'llm_provider': dcfg['Deployment']['LLM_PROVIDER'],
-           'llm_model': dcfg['Deployment']['LLM_MODEL'],
-           'emb_provider': dcfg['Deployment']['EMB_PROVIDER'],
-           'emb_model': dcfg['Deployment']['EMB_MODEL']}
+    # options: list = []
+    # for p in scfg['Providers'].keys():
+    #     options.append({'provider': p,
+    #                     'llm_model': scfg['Providers'][p][f'{p.upper()}_LLM_MODEL'].split(','),
+    #                     'emb_model': scfg['Providers'][p][f'{p.upper()}_EMB_MODEL'].split(','),
+    #                     'prov_intro': scfg['Providers'][p][f'{p.upper()}_INTRO']}
+    #                    )
+    options = reg_service.cfg.aggregate_provider_profile()
+    # sel = {'llm_provider': dcfg['Deployment']['LLM_PROVIDER'],
+    #        'llm_model': dcfg['Deployment']['LLM_MODEL'],
+    #        'emb_provider': dcfg['Deployment']['EMB_PROVIDER'],
+    #        'emb_model': dcfg['Deployment']['EMB_MODEL']}
+    sel = reg_service.cfg.get_deployment_profile()
     return ModelConfig(model_support=options, model_select=sel)
 
 class ModelConfigResult(BaseModel):
@@ -195,25 +202,7 @@ async def save_config(options: ModelSelect):
         return {"message": f'Configuration failed because model{"s" if len(unavail_models)>0 else ""} {",".join(unavail_models)} {"are" if len(unavail_models)>0 else "is"} not downloaded yet.',
                 "status_ok": False}
 
-    dcfg['Deployment']['LLM_PROVIDER'] = options.llm_provider
-    dcfg['Deployment']['LLM_MODEL'] = options.llm_model
-    dcfg['Deployment']['EMB_PROVIDER'] = options.emb_provider
-    dcfg['Deployment']['EMB_MODEL'] = options.emb_model
-
-    # Load the original TOML file with tomlkit to preserve structure and comments
-    with open(os.path.join(app_root, "backend", "dyn_config.toml"), "r", encoding="utf-8") as f:
-        dyn_config = tomlkit.parse(f.read())
-
-    # Update the TOML structure with new values
-    dyn_config['Deployment']['LLM_PROVIDER'] = options.llm_provider
-    dyn_config['Deployment']['LLM_MODEL'] = options.llm_model
-    dyn_config['Deployment']['EMB_PROVIDER'] = options.emb_provider
-    dyn_config['Deployment']['EMB_MODEL'] = options.emb_model
-
-    # Write the updated TOML back to the file
-    with open(os.path.join(app_root, "backend", "dyn_config.toml"), "w", encoding="utf-8") as f:
-        f.write(tomlkit.dumps(dyn_config))
-        f.flush()
+    reg_service.cfg.update_deployment_profile(options)
 
     return {"message": "Configuration updated successfully", "status_ok": True}
 
@@ -268,18 +257,7 @@ async def upload_documents(documents: List[UploadFile] = File(...),
         remove_useless(documents)
         # You can further process the document_list here, like removing duplicates
 
-        # Load the original TOML file with tomlkit to preserve structure and comments
-        with open(os.path.join(app_root, "backend", "dyn_config.toml"), "r", encoding="utf-8") as f:
-            dyn_config = tomlkit.parse(f.read())
-
-        # Update the TOML structure with new values
-        dyn_config['Knowledge']['DOCUMENTS'] = ','.join(documents)
-        dyn_config['Knowledge']['ROBOT_DESC'] = system_prompt.strip()
-
-        # Write the updated TOML back to the file
-        with open(os.path.join(app_root, "backend", "dyn_config.toml"), "w", encoding="utf-8") as f:
-            f.write(tomlkit.dumps(dyn_config))
-            f.flush()
+        reg_service.cfg.update_knowledge_base(documents=','.join(documents), robot_desc=system_prompt.strip())
 
         return {"message": "Documents and system prompt uploaded and saved successfully.", "status_ok": True}
     except Exception as ee:
@@ -298,18 +276,7 @@ async def update_documents(system_prompt: str = Form(...), document_list: str = 
         remove_useless(documents)
         # You can further process the document_list here, like removing duplicates
 
-        # Load the original TOML file with tomlkit to preserve structure and comments
-        with open(os.path.join(app_root, "backend", "dyn_config.toml"), "r", encoding="utf-8") as f:
-            dyn_config = tomlkit.parse(f.read())
-
-        # Update the TOML structure with new values
-        dyn_config['Knowledge']['DOCUMENTS'] = ','.join(documents)
-        dyn_config['Knowledge']['ROBOT_DESC'] = system_prompt.strip()
-
-        # Write the updated TOML back to the file
-        with open(os.path.join(app_root, "backend", "dyn_config.toml"), "w", encoding="utf-8") as f:
-            f.write(tomlkit.dumps(dyn_config))
-            f.flush()
+        reg_service.cfg.update_knowledge_base(documents=','.join(documents), robot_desc=system_prompt.strip())
 
         return {"message": "Documents and system prompt uploaded and saved successfully.", "status_ok": True}
     except Exception as ee:
@@ -323,8 +290,9 @@ class DocumentFetchResult(BaseModel):
 async def fetch_documents():
     try:
         # Fetch the list of documents and system prompt
-        documents = dcfg['Knowledge']['DOCUMENTS'].split(',') if dcfg['Knowledge']['DOCUMENTS'] else []
-        system_prompt = dcfg['Knowledge']['ROBOT_DESC']
+        docs = reg_service.cfg.get_documents()
+        documents = docs.split(',') if docs else []
+        system_prompt = reg_service.cfg.get_robot_desc()  #dcfg['Knowledge']['ROBOT_DESC']
 
         return {
             "documents": documents,
@@ -351,7 +319,7 @@ def update_tray_menu(visible, q_action):
     else:
         q_action.setText('Show Console')
 
-osetting = OllamaSetting(logger, app_root)
+ollsetting = OllamaSetting(logger, app_root)
 
 # Function to create and show the system tray icon
 def create_system_tray(win_handler):
@@ -367,7 +335,7 @@ def create_system_tray(win_handler):
         tray_menu = QMenu()
 
         ollama_action = QAction('Ollama Setting', tray_menu)
-        ollama_action.triggered.connect(osetting.open_ollama_settings)
+        ollama_action.triggered.connect(ollsetting.open_ollama_settings)
         tray_menu.addAction(ollama_action)
 
         wv = win32gui.IsWindowVisible(hwnd)
