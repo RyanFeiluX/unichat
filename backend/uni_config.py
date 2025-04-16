@@ -145,15 +145,15 @@ class UniConfig():
     def get_robot_desc(self):
         return self.dcfg['Knowledge']['ROBOT_DESC']
 
-    def update_knowledge_base(self, documents: list|None = None, robot_desc: str|None = None):
-        if documents or robot_desc:
+    def update_knowledge_base(self, doc_list: list|None = None, robot_desc: str|None = None):
+        if doc_list or robot_desc:
             # Load the original TOML file with tomlkit to preserve structure and comments
             with open(os.path.join(self.app_root, "backend", "dyn_config.toml"), "r", encoding="utf-8") as f:
                 dyn_config = tomlkit.parse(f.read())
 
             # Update the TOML structure with new values
-            if documents:
-                dyn_config['Knowledge']['DOCUMENTS'] = ','.join(documents)
+            if doc_list:
+                dyn_config['Knowledge']['DOCUMENTS'] = ','.join(doc_list)
             if robot_desc:
                 dyn_config['Knowledge']['ROBOT_DESC'] = robot_desc.strip()
 

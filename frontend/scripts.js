@@ -572,7 +572,7 @@ function saveKnowledgeBase() {
                 } else {
                     fileBlob = new Blob([matchingFile.content], { type: 'text/plain' });
                 }
-                formData.append('documents', new File([fileBlob], filePath));
+                formData.append('doc_blob_list', new File([fileBlob], filePath));
                 docCnt = docCnt + 1;
             }
         });

@@ -53,7 +53,7 @@ from rag_service import RagService
 rag_service = RagService(app_root, logger)
 LOCAL_DOCS_DIR = rag_service.modconfig.local_docs_dir()
 logger.info(f'LOCAL_DOCS_DIR: {LOCAL_DOCS_DIR }')
-rag_service.setup_service()
+rag_service.setup_service(LOCAL_DOCS_DIR)
 
 try:
     # Open and read the .yml file
@@ -196,33 +196,16 @@ async def save_config(options: ModelSelect):
     return {"message": "Configuration updated successfully", "status_ok": True}
 
 
-def remove_useless(doc_list: list):
-    # Get the latest document list
-    latest_documents = [doc.strip() for doc in doc_list]
-
-    # Get the list of all files in the local_docs folder
-    all_files = os.listdir(LOCAL_DOCS_DIR)
-
-    # Identify the files that are not in the latest document list
-    useless_files = [f for f in all_files if f not in latest_documents]
-
-    # Remove the useless files
-    for f in useless_files:
-        file_path = os.path.join(LOCAL_DOCS_DIR, f)
-        if os.path.isfile(file_path):
-            os.remove(file_path)
-            logger.info(f"Removed the useless: {file_path}")
-
 class UploadDocumentsResult(BaseModel):
     message: str
     status_ok: bool
 
 @app.post("/api/upload-documents", response_model=UploadDocumentsResult)
-async def upload_documents(documents: List[UploadFile] = File(...),
+async def upload_documents(doc_blob_list: List[UploadFile] = File(...),
                            system_prompt: str = Form(...), document_list: str = Form(...)):
     try:
         # Validate that at least one document is uploaded
-        if not documents:
+        if not doc_blob_list:
             raise HTTPException(status_code=422, detail="No documents were uploaded.")
 
         # Validate that the system prompt is not empty
@@ -233,7 +216,7 @@ async def upload_documents(documents: List[UploadFile] = File(...),
             os.makedirs(LOCAL_DOCS_DIR)  # Ensure the directory for saving files exists
 
         file_names = []
-        for document in documents:
+        for document in doc_blob_list:
             file_path = os.path.join(LOCAL_DOCS_DIR, document.filename)
             with open(file_path, "wb") as f:
                 f.write(await document.read())  # Save the uploaded file content
@@ -242,11 +225,11 @@ async def upload_documents(documents: List[UploadFile] = File(...),
             file_names.append(document.filename)
 
         # Update the document list
-        documents = document_list.split(',') if document_list else []
-        remove_useless(documents)
+        doc_list = document_list.split(',') if document_list else []
+        rag_service.remove_useless(doc_list)
         # You can further process the document_list here, like removing duplicates
 
-        rag_service.cfg.update_knowledge_base(documents=documents, robot_desc=system_prompt.strip())
+        rag_service.cfg.update_knowledge_base(doc_list=doc_list, robot_desc=system_prompt.strip())
 
         return {"message": "Documents and system prompt uploaded and saved successfully.", "status_ok": True}
     except Exception as ee:
@@ -261,11 +244,11 @@ class DocumentsConfigResult(BaseModel):
 async def update_documents(system_prompt: str = Form(...), document_list: str = Form(...)):
     try:
         # Update the document list
-        documents = document_list.split(',') if document_list else []
-        remove_useless(documents)
+        doc_list = document_list.split(',') if document_list else []
+        rag_service.remove_useless(doc_list)
         # You can further process the document_list here, like removing duplicates
 
-        rag_service.cfg.update_knowledge_base(documents=documents, robot_desc=system_prompt.strip())
+        rag_service.cfg.update_knowledge_base(doc_list=doc_list, robot_desc=system_prompt.strip())
 
         return {"message": "Documents and system prompt uploaded and saved successfully.", "status_ok": True}
     except Exception as ee:

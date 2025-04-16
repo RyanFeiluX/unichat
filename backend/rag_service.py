@@ -169,6 +169,7 @@ class RagService():
 
     def __init__(self, app_root, logger):
         # self.super().__init__()
+        self._local_docs_dir = None
         self.app_root = app_root
         self.logger = logger
         self.cfg = UniConfig(app_root, logger)
@@ -179,15 +180,33 @@ class RagService():
     def msg_chain(self):
         return self._msg_chain
 
+    def remove_useless(self, doc_list: list):
+        # Get the latest document list
+        latest_documents = [doc.strip() for doc in doc_list]
+
+        # Get the list of all files in the local_docs folder
+        all_files = os.listdir(self._local_docs_dir)
+
+        # Identify the files that are not in the latest document list
+        useless_files = [f for f in all_files if f not in latest_documents]
+
+        # Remove the useless files
+        for f in useless_files:
+            file_path = os.path.join(self._local_docs_dir, f)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+                self.logger.info(f"Removed the useless: {file_path}")
+
     def get_session_history(self, session_id) -> BaseChatMessageHistory:  # A key/session_id pair for a question/answer pair
         if session_id not in self.store:
             # print(f'Create session \"{session_id}\"')
             self.store[session_id] = ChatMessageHistory()
         return self.store[session_id]
 
-    def setup_service(self, reset: bool = False):
+    def setup_service(self, local_docs_dir, reset: bool = False):
         if reset:
             self.cfg.reload_config()
+        self._local_docs_dir = local_docs_dir
 
         pages = self.modconfig.read_documents()
         text_splitter = RecursiveCharacterTextSplitter(
@@ -252,4 +271,4 @@ class RagService():
         self._msg_chain = msg_hist_chain
 
     def restart_service(self):
-        self.setup_service(reset=True)
+        self.setup_service(self._local_docs_dir, reset=True)
