@@ -291,12 +291,20 @@ async def fetch_documents():
         logger.error(f'Exception in fetching documents and system prompt: {str(ee)}')
         raise HTTPException(status_code=500, detail=f"Exception in fetching documents and system prompt: {str(ee)}")
 
-class ChangesSuspended(BaseModel):
-    suspended: bool
+class ChangesSuspense(BaseModel):
+    suspense: bool
 
-@app.get('/api/changes-suspended', response_model=ChangesSuspended)
-async def fetch_changes_suspended():
-    return {'suspended': rag_service.cfg.changes_suspended}
+@app.get('/api/config-suspense', response_model=ChangesSuspense)
+async def query_config_suspense():
+    return {'suspense': rag_service.cfg.changes_suspense}
+
+class ChangesApply(BaseModel):
+    status_ok: bool
+
+@app.post('/api/changes-apply', response_model=ChangesApply)
+async def apply_changes_suspense():
+    rag_service.restart_service()
+    return {'status_ok': True}
 
 def toggle_console_state(win_handler, q_action):
     visible = win32gui.IsWindowVisible(win_handler)

@@ -35,11 +35,11 @@ class UniConfig():
         else:
             logger.info(f'No dotenv found')
         self.santize()
-        self._unapplied_changes = 0
+        self._changes_suspense = 0
 
     @property
-    def changes_suspended(self):
-        return self._unapplied_changes > 0
+    def changes_suspense(self):
+        return self._changes_suspense > 0
 
     def _validate(self):
         cfg_error_cnt = 0

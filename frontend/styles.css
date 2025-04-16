@@ -40,6 +40,31 @@ body {
 .top-bar-label {
     font-size: 18px;
     font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+}
+
+.config-changes-label {
+    font-weight: normal;
+}
+
+/* Add styles for the config changes icon */
+.config-changes-icon {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    margin-right: 10px;
+    vertical-align: middle;
+    margin-bottom: 3px;
+}
+
+.config-changes-icon.red {
+    background-color: red;
+}
+
+.config-changes-icon.green {
+    background-color: green;
 }
 
 .config-button {

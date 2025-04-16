@@ -114,6 +114,26 @@ window.addEventListener("load",function(){
     //后续控制交互行为或者处理业务的js代码
 })
 
+// Function to fetch config changes suspended state and update icon color
+async function updateConfigChangesIcon() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/config-suspense`);
+        const data = await response.json();
+        const icon = document.getElementById('config-changes-icon');
+        if (data.suspense) {
+            icon.classList.remove('green');
+            icon.classList.add('red');
+        } else {
+            icon.classList.remove('red');
+            icon.classList.add('green');
+        }
+    } catch (error) {
+        console.error('Error in fetching config changes suspended state:', error);
+    }
+}
+// Call the function when the page loads
+window.addEventListener('load', updateConfigChangesIcon);
+
 function openConfigModal() {
     const configModal = document.getElementById('config-modal');
     configModal.style.display = 'block'; // Ensure the modal is displayed
