@@ -146,7 +146,7 @@ class UniConfig():
 
             # Update the TOML structure with new values
             if documents:
-                dyn_config['Knowledge']['DOCUMENTS'] = documents
+                dyn_config['Knowledge']['DOCUMENTS'] = ','.join(documents)
             if robot_desc:
                 dyn_config['Knowledge']['ROBOT_DESC'] = robot_desc.strip()
 
