@@ -108,7 +108,7 @@ class UniConfig():
         with open(os.path.join(self.app_root, "backend", "dyn_config.toml"), "w", encoding="utf-8") as f:
             f.write(tomlkit.dumps(dyn_config))
             f.flush()
-            self._unapplied_changes += 1
+            self._changes_suspense += 1
 
     def retrieve_llmconfig(self):
         # llm
@@ -154,7 +154,7 @@ class UniConfig():
             with open(os.path.join(self.app_root, "backend", "dyn_config.toml"), "w", encoding="utf-8") as f:
                 f.write(tomlkit.dumps(dyn_config))
                 f.flush()
-                self._unapplied_changes += 1
+                self._changes_suspense += 1
 
     def update_embconfig(self, embProvider, embModel):
         # Load the original TOML file with tomlkit to preserve structure and comments
@@ -169,7 +169,7 @@ class UniConfig():
         with open(self.dcfg_path, "w", encoding="utf-8") as f:
             f.write(tomlkit.dumps(dyn_config))
             f.flush()
-            self._unapplied_changes += 1
+            self._changes_suspense += 1
 
     def retrieve_embconfig(self):
         emb_provider = self.dcfg['Deployment']['EMB_PROVIDER'].upper()  # os.getenv('EMB_PROVIDER')
@@ -242,4 +242,4 @@ class UniConfig():
         with open(os.path.join(self.app_root, "backend", "dyn_config.toml"), "w", encoding="utf-8") as f:
             f.write(tomlkit.dumps(dyn_config))
             f.flush()
-            self._unapplied_changes += 1
+            self._changes_suspense += 1

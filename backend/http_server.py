@@ -246,7 +246,7 @@ async def upload_documents(documents: List[UploadFile] = File(...),
         remove_useless(documents)
         # You can further process the document_list here, like removing duplicates
 
-        rag_service.cfg.update_knowledge_base(documents=','.join(documents), robot_desc=system_prompt.strip())
+        rag_service.cfg.update_knowledge_base(documents=documents, robot_desc=system_prompt.strip())
 
         return {"message": "Documents and system prompt uploaded and saved successfully.", "status_ok": True}
     except Exception as ee:
@@ -279,8 +279,8 @@ class DocumentFetchResult(BaseModel):
 async def fetch_documents():
     try:
         # Fetch the list of documents and system prompt
-        docs = rag_service.cfg.get_documents()
-        documents = docs.split(',') if docs else []
+        # docs = rag_service.cfg.get_documents()
+        documents = rag_service.cfg.get_documents()
         system_prompt = rag_service.cfg.get_robot_desc()  #dcfg['Knowledge']['ROBOT_DESC']
 
         return {
@@ -301,10 +301,15 @@ async def query_config_suspense():
 class ChangesApply(BaseModel):
     status_ok: bool
 
-@app.post('/api/changes-apply', response_model=ChangesApply)
+@app.post('/api/config-apply', response_model=ChangesApply)
 async def apply_changes_suspense():
-    rag_service.restart_service()
-    return {'status_ok': True}
+    try:
+        # Here you can add the logic to apply the configuration changes
+        # For example, restart the service
+        rag_service.restart_service()
+        return {'status_ok': True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 def toggle_console_state(win_handler, q_action):
     visible = win32gui.IsWindowVisible(win_handler)
