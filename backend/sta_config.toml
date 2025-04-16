@@ -1,7 +1,7 @@
 [Providers]
 [Providers.Ollama]
 OLLAMA_BASE_URL="https://api.openai.com/v1"
-OLLAMA_LLM_MODEL="moonshot-v1-8k,deepseek-chat,deepseek-reasoner,deepseek-r1:1.5b,Baichuan3-Turbo,qwen2-0.5b-instruct"
+OLLAMA_LLM_MODEL="moonshot-v1-8k,deepseek-chat,deepseek-reasoner,deepseek-r1:1.5b,deepseek-r1:7b,deepseek-r1:8b,Baichuan3-Turbo,qwen2-0.5b-instruct,codellama:7b"
 OLLAMA_EMB_MODEL="text-embedding-ada-002,Baichuan-Text-Embedding,embedding-3,deepseek-r1:1.5b"
 OLLAMA_INTRO="Ollama is an open-source platform enabling easy local deployment of large language models (LLMs) like LLaMA and Mistral, focusing on simplicity, efficiency, and privacy."
 [Providers.OpenAI]
@@ -26,7 +26,7 @@ ZHIPUAI_EMB_MODEL="embedding-3"
 ZHIPUAI_INTRO="Zhipu AI, founded in 2019, develops cognitive intelligence large models like GLM series and ChatGLM, promoting open-source and MaaS for AI innovation."
 [Providers.DeepSeek]
 DEEPSEEK_BASE_URL="https://api.deepseek.com"
-DEEPSEEK_LLM_MODEL="deepseek-chat,deepseek-reasoner,deepseek-r1:1.5b,deepseek-r1:8b,deepseek-r1:14b"
+DEEPSEEK_LLM_MODEL="deepseek-chat,deepseek-reasoner,deepseek-r1:1.5b,deepseek-r1:7b,deepseek-r1:8b,deepseek-r1:14b"
 DEEPSEEK_EMB_MODEL="Embedding-3"
 DEEPSEEK_INTRO="DeepSeek, founded in 2023, develops efficient, open - source large language models like V3 and R1, excelling in multi - language and multi - modal tasks with low costs."
 [Providers.DashScope]
