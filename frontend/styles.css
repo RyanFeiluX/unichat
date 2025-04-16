@@ -270,10 +270,16 @@ body {
 .tab-content {
     display: none;
     min-height: 300px; /* Ensure all subpages have the same height */
+    position: relative;
 }
 
 .tab-content.active {
     display: block;
+}
+
+#model-tab,
+#knowledge-tab {
+    position: relative; /* Set the parent container as a positioning context */
 }
 
 /* Model Tab Styles */
@@ -298,7 +304,7 @@ body {
 
 #config-modal select,
 #config-modal button {
-    max-width: 95%; /* Adjust components to fit the new width */
+    max-width: 100%; /* Adjust components to fit the new width */
 }
 
 #config-modal .save-button {
@@ -411,7 +417,7 @@ body {
 }
 
 #knowledge-tab .save-button {
-    position: absolute;
+/*    position: absolute;*/
     bottom: 20px;
     right: 20px;
     background-color: #28a745;
@@ -419,7 +425,7 @@ body {
     border-radius: 5px;
     padding: 5px 10px;
     font-size: 14px;
-    border: none; /* Remove visible borders for all buttons */
+    border: none;
 }
 
 #knowledge-tab .save-button:hover {
@@ -584,7 +590,7 @@ body {
     border-radius: 5px;
     padding: 5px 10px;
     font-size: 14px;
-    border: none; /* Remove visible borders for all buttons */
+    border: none;
 }
 
 .save-button:hover {
@@ -607,7 +613,7 @@ body {
 }
 
 #model-tab .save-button {
-    position: absolute;
+/*    position: absolute;*/
     bottom: 20px;
     right: 20px; /* Align with the knowledge base save button */
     background-color: #28a745;
@@ -615,7 +621,7 @@ body {
     border-radius: 5px;
     padding: 5px 10px;
     font-size: 14px;
-    border: none; /* Remove visible borders for all buttons */
+    border: none;
 }
 
 #model-tab .save-button:hover {
@@ -728,4 +734,38 @@ body {
 .custom-alert-close-button:hover,
 .custom-alert-confirm-button:hover {
     opacity: 0.8;
+}
+
+#model-tab .save-button,
+#knowledge-tab .save-button {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+/*    align-self: flex-end; *//* Align to the end of the container */
+/*    align-items: flex-right; *//* Align to the end of the container */
+/*    margin-top: auto; *//* Push the button to the bottom */
+/*    margin-bottom: 10px; *//* Add some bottom margin */
+}
+
+.tab-contents-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* You can adjust this value to change the gap between tab contents */
+    border-bottom: 1px solid #ebebeb;
+    position: relative;
+}
+
+/* Add styles for the apply button container */
+.apply-button-container {
+    display: flex;
+    justify-content: center; /* Center the button horizontally */
+    margin-top: 20px; /* Add some margin on top of the button container */
+}
+
+#apply-config-button {
+    align-self: flex-center;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    width: 50%;
 }

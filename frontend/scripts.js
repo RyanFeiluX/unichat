@@ -742,3 +742,53 @@ function disableSaveButton(tabId) {
         saveButton.style.cursor = 'not-allowed';
     }
 }
+
+// Function to show awaiting status
+function showAwaitingStatus() {
+    const applyButton = document.getElementById('apply-config-button');
+    applyButton.disabled = true;
+    applyButton.textContent = '应用中,请等待...';
+}
+
+// Function to hide awaiting status
+function hideAwaitingStatus() {
+    const applyButton = document.getElementById('apply-config-button');
+    applyButton.disabled = false;
+    applyButton.textContent = '应用配置变更';
+}
+
+// Function to apply configuration changes
+async function applyConfigChanges() {
+    try {
+        showAwaitingStatus();
+        const response = await fetch(`${BASE_URL}/api/config-apply`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({})
+        });
+        if (!response.ok) {
+            throw new Error(`Server error: ${await response.text()}`);
+        }
+        const data = await response.json();
+        if (data.status_ok) {
+            showCustomAlert('成功', '配置变更已成功应用。');
+        } else {
+            showCustomAlert('失败', '应用配置变更时出现错误。');
+        }
+    } catch (error) {
+        console.error('Error in applying configuration changes:', error);
+        showCustomAlert('错误', '应用配置变更时发生错误。');
+    } finally {
+        hideAwaitingStatus();
+    }
+}
+
+// Add event listener to the apply button
+document.addEventListener('DOMContentLoaded', () => {
+    const applyButton = document.getElementById('apply-config-button');
+    if (applyButton) {
+        applyButton.addEventListener('click', applyConfigChanges);
+    }
+});
