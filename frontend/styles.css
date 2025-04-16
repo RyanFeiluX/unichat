@@ -763,9 +763,19 @@ body {
     margin-top: 20px; /* Add some margin on top of the button container */
 }
 
-#apply-config-button {
+.apply-config-button {
     align-self: flex-center;
     margin-top: 20px;
     margin-bottom: 20px;
-    width: 50%;
+    width: 60%;
+    border: none;
+    color: #ffffff;
+    background-color: #cf0505;
+    padding: 5px 10px;
+}
+
+.apply-config-button:disabled {
+    background-color: #6c757d; /* Gray color for disabled state */
+    color: #e9ecef; /* Light gray text for disabled state */
+    cursor: not-allowed; /* Change cursor to indicate disabled state */
 }

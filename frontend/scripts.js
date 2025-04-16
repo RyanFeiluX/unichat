@@ -115,9 +115,9 @@ window.addEventListener("load",function(){
 })
 
 // Function to fetch config changes suspended state and update icon color
-async function updateConfigChangesIcon() {
+async function queryConfigChangesIcon() {
     try {
-        const response = await fetch(`${BASE_URL}/api/config-suspense`);
+        const response = await fetch(`${BASE_URL}/api/config-suspense`, {method: 'GET'});
         const data = await response.json();
         const icon = document.getElementById('config-changes-icon');
         if (data.suspense) {
@@ -127,12 +127,15 @@ async function updateConfigChangesIcon() {
             icon.classList.remove('red');
             icon.classList.add('green');
         }
+        updateApplyConfigButtonState();
     } catch (error) {
         console.error('Error in fetching config changes suspended state:', error);
     }
 }
 // Call the function when the page loads
-window.addEventListener('load', updateConfigChangesIcon);
+window.addEventListener('DOMContentLoaded', function() {
+    queryConfigChangesIcon();
+});
 
 function openConfigModal() {
     const configModal = document.getElementById('config-modal');
@@ -163,23 +166,6 @@ function closeConfigModal() {
             // Rollback document list
             if (hasUnsavedDocumentListChanges) {
                 revertDocumentList(originalDocumentList)
-//                const tableBody = document.querySelector('#selected-files tbody');
-//                tableBody.innerHTML = ''; // Clear existing rows
-//                if (originalDocumentList.length > 0) {
-//                    originalDocumentList.forEach(doc => {
-//                        const row = document.createElement('tr');
-//                        row.innerHTML = `<td>${doc}</td>`;
-//                        row.onclick = () => toggleRowSelection(row); // Add click event for selection
-//                        tableBody.appendChild(row);
-//                    });
-//                } else {
-//                    const emptyRow = document.createElement('tr');
-//                    emptyRow.className = 'empty-row';
-//                    emptyRow.innerHTML = `<td>暂无文档</td>`;
-//                    tableBody.appendChild(emptyRow);
-//                }
-//                accumulatedFilePaths = originalDocumentList.slice();
-//                hasUnsavedDocumentListChanges = false;
             }
 
             // Disable save buttons
@@ -254,6 +240,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize tabs
     initializeModelTab();
     initializeKnowledgeTab();
+
+    updateApplyConfigButtonState();
+
+    document.getElementById('apply-config-button').addEventListener('click', () => {
+        applyConfigChanges();
+//        queryConfigChangesIcon();
+    });
 });
 
 let llmModelsData = {};
@@ -313,6 +306,8 @@ function initializeModelTab() {
             return acc;
         }, {});
         updateProviderDescription();
+
+        queryConfigChangesIcon();
     })
     .catch(error => console.error('Error fetching model configuration:', error));
 
@@ -393,6 +388,8 @@ function saveModelConfig() {
             originalEmbeddingProvider = embProvider;
             originalEmbeddingModel = embModel;
             hasUnsavedModelChanges = false;
+
+            queryConfigChangesIcon()
         } else {
             showCustomAlert('失败', data.message);
         }
@@ -536,21 +533,6 @@ function clearSelectedFiles() {
 
 function revertDocumentList() {
     populateDocumentList(originalDocumentList)
-//    const tableBody = document.querySelector('#selected-files tbody');
-//    tableBody.innerHTML = ''; // Clear existing rows
-//    if (originalDocumentList.length > 0) {
-//        originalDocumentList.forEach(doc => {
-//            const row = document.createElement('tr');
-//            row.innerHTML = `<td>${doc}</td>`;
-//            row.onclick = () => toggleRowSelection(row); // Add click event for selection
-//            tableBody.appendChild(row);
-//        });
-//    } else {
-//        const emptyRow = document.createElement('tr');
-//        emptyRow.className = 'empty-row';
-//        emptyRow.innerHTML = `<td>暂无文档</td>`;
-//        tableBody.appendChild(emptyRow);
-//    }
     accumulatedFilePaths = originalDocumentList.slice();
     hasUnsavedDocumentListChanges = false;
 }
@@ -631,6 +613,8 @@ function saveKnowledgeBase() {
                 originalDocumentList = accumulatedFilePaths.slice();
                 hasUnsavedKnowledgeChanges = false;
                 hasUnsavedDocumentListChanges = false;
+
+                queryConfigChangesIcon();
             } else {
                 response.text().then(errorText => {
                     throw new Error(`Failed to upload ${target_en} to the server. ${errorText}`);
@@ -677,25 +661,6 @@ function initializeKnowledgeTab() {
     .then(data => {
         // Populate the document list
         populateDocumentList(data.documents)
-//        const tableBody = document.querySelector('#selected-files tbody');
-//        tableBody.innerHTML = ''; // Clear existing rows
-//        if (data.documents.length > 0) {
-//            data.documents.forEach(doc => {
-//                const row = document.createElement('tr');
-//                row.innerHTML = `<td>${doc}</td>`;
-//                row.onclick = () => toggleRowSelection(row); // Add click event for selection
-//                tableBody.appendChild(row);
-//
-//                // Add the document name to accumulatedFilePaths
-//                accumulatedFilePaths.push(doc);
-//            });
-//        } else {
-//            // Add a placeholder row if no documents exist
-//            const emptyRow = document.createElement('tr');
-//            emptyRow.className = 'empty-row';
-//            emptyRow.innerHTML = `<td>暂无文档</td>`;
-//            tableBody.appendChild(emptyRow);
-//        }
 
         // Populate the system prompt
         const systemPrompt = document.getElementById('system-prompt');
@@ -747,7 +712,7 @@ function disableSaveButton(tabId) {
 function showAwaitingStatus() {
     const applyButton = document.getElementById('apply-config-button');
     applyButton.disabled = true;
-    applyButton.textContent = '应用中,请等待...';
+    applyButton.textContent = '配置变更部署进行中,请等待...';
 }
 
 // Function to hide awaiting status
@@ -774,6 +739,8 @@ async function applyConfigChanges() {
         const data = await response.json();
         if (data.status_ok) {
             showCustomAlert('成功', '配置变更已成功应用。');
+
+            queryConfigChangesIcon();
         } else {
             showCustomAlert('失败', '应用配置变更时出现错误。');
         }
@@ -785,10 +752,16 @@ async function applyConfigChanges() {
     }
 }
 
-// Add event listener to the apply button
-document.addEventListener('DOMContentLoaded', () => {
+function updateApplyConfigButtonState() {
+    const icon = document.getElementById('config-changes-icon');
     const applyButton = document.getElementById('apply-config-button');
-    if (applyButton) {
-        applyButton.addEventListener('click', applyConfigChanges);
+    if (icon.classList.contains('red')) {
+        applyButton.disabled = false;
+        applyButton.style.backgroundColor = ''; // Reset background color
+        applyButton.style.cursor = 'pointer';
+    } else {
+        applyButton.disabled = true;
+        applyButton.style.backgroundColor = '#6c757d'; // Gray color for disabled state
+        applyButton.style.cursor = 'not-allowed';
     }
-});
+}
