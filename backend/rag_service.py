@@ -35,7 +35,7 @@ class ModelConfig():
         self.LOCAL_DOCS_DIR = os.path.abspath(os.path.join(app_root, "local_docs"))
         self.cfg = cfg
         # Load documents in the format of PDF,txt,docx,csv and etc.
-        self.files: str = cfg.get_documents()  #dcfg['Knowledge']['DOCUMENTS']  # os.getenv("DOCUMENTS")
+        self.files: list = cfg.get_documents()  #dcfg['Knowledge']['DOCUMENTS']  # os.getenv("DOCUMENTS")
         self.robot_desc: str = cfg.get_robot_desc()  #dcfg['Knowledge']['ROBOT_DESC']  # os.getenv("ROBOT_DESC")
         self.logger = logger
 
@@ -83,12 +83,13 @@ class ModelConfig():
 
     def read_documents(self)->list:
         pages = []
-        for file in self.files.split(','):
+        for file in self.files:
             file_path = os.path.join(self.LOCAL_DOCS_DIR, file.strip())
             if not os.path.exists(file_path):
                 self.logger.warn(f'{file_path} does not exist and be ignored.')
                 continue
             bn, ext = os.path.splitext(file_path)
+            assert len(ext.strip()) > 0, f'Extension name is missing from {file_path}'
             if ext.lower() == '.md':
                 # Considering of loading markdown needing NLTK data. It makes it complicated.
                 # Here a workaround is that markdown files are firstly converted to Word and

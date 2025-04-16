@@ -131,8 +131,9 @@ class UniConfig():
     def get_default_embconfig(self):
         return self.scfg['Default']['embProvider'], self.scfg['Default']['embModel']
 
-    def get_documents(self):
-        return self.dcfg['Knowledge']['DOCUMENTS']
+    def get_documents(self)->list:
+        docs = self.dcfg['Knowledge']['DOCUMENTS'].split(',')
+        return [d.strip() for d in docs]
 
     def get_robot_desc(self):
         return self.dcfg['Knowledge']['ROBOT_DESC']
@@ -145,7 +146,7 @@ class UniConfig():
 
             # Update the TOML structure with new values
             if documents:
-                dyn_config['Knowledge']['DOCUMENTS'] = ','.join(documents)
+                dyn_config['Knowledge']['DOCUMENTS'] = documents
             if robot_desc:
                 dyn_config['Knowledge']['ROBOT_DESC'] = robot_desc.strip()
 
