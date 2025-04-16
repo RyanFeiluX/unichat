@@ -196,7 +196,7 @@ async def save_config(options: ModelSelect):
     return {"message": "Configuration updated successfully", "status_ok": True}
 
 
-def remove_useless(doc_list):
+def remove_useless(doc_list: list):
     # Get the latest document list
     latest_documents = [doc.strip() for doc in doc_list]
 
@@ -265,7 +265,7 @@ async def update_documents(system_prompt: str = Form(...), document_list: str = 
         remove_useless(documents)
         # You can further process the document_list here, like removing duplicates
 
-        rag_service.cfg.update_knowledge_base(documents=','.join(documents), robot_desc=system_prompt.strip())
+        rag_service.cfg.update_knowledge_base(documents=documents, robot_desc=system_prompt.strip())
 
         return {"message": "Documents and system prompt uploaded and saved successfully.", "status_ok": True}
     except Exception as ee:
@@ -303,6 +303,7 @@ class ChangesApply(BaseModel):
 
 @app.post('/api/config-apply', response_model=ChangesApply)
 async def apply_changes_suspense():
+    logger.info(f'Re-establishing the knowledge base...')
     try:
         # Here you can add the logic to apply the configuration changes
         # For example, restart the service

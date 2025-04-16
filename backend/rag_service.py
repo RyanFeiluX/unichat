@@ -185,7 +185,10 @@ class RagService():
             self.store[session_id] = ChatMessageHistory()
         return self.store[session_id]
 
-    def setup_service(self):
+    def setup_service(self, reset: bool = False):
+        if reset:
+            self.cfg.reload_config()
+
         pages = self.modconfig.read_documents()
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=300,
@@ -249,4 +252,4 @@ class RagService():
         self._msg_chain = msg_hist_chain
 
     def restart_service(self):
-        self.setup_service()
+        self.setup_service(reset=True)

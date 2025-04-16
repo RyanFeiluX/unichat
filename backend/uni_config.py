@@ -22,11 +22,7 @@ class UniConfig():
         self.dcfg_path = os.path.join(app_root, "backend", "dyn_config.toml")
         self.factory_cfg_path = os.path.join(app_root, "backend", "factory.toml")
         self._validate()
-        self.scfg = self.load_static_config()
-        self.dcfg = self.load_dynamic_config()
-        self.factory_cfg = self.load_factory_config()
-        # Ensure dynamic configuration is merged with factory defaults
-        self.merge_config(self.dcfg, self.factory_cfg)
+        self.load_config()
         # Load env variables from local .env file. Several parameters are there, including API_KEY.
         dotenv_path = find_dotenv(filename='.env', raise_error_if_not_found=False)
         if dotenv_path:
@@ -36,6 +32,17 @@ class UniConfig():
             logger.info(f'No dotenv found')
         self.santize()
         self._changes_suspense = 0
+
+    def load_config(self):
+        self.scfg = self.load_static_config()
+        self.dcfg = self.load_dynamic_config()
+        self.factory_cfg = self.load_factory_config()
+        # Ensure dynamic configuration is merged with factory defaults
+        self.merge_config(self.dcfg, self.factory_cfg)
+        self._changes_suspense = 0
+
+    def reload_config(self):
+        self.load_config()
 
     @property
     def changes_suspense(self):
