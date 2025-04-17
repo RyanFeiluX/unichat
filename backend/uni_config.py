@@ -208,12 +208,13 @@ class UniConfig():
 
         emb_provider, emb_model = self.retrieve_embconfig()
         if (not emb_provider) or (not check_model_avail(emb_model)):
-            self.update_embconfig(*self.retrieve_embconfig())
-
-            self.logger.error(f'Model {emb_model} is not locally found. Embedding config shall fall back.')
-            self.logger.warning(f'Please close the app and download model {emb_model} offline.')
-            while True:
-                pass
+            self.update_embconfig(*self.get_default_embconfig())
+            if llm_provider == 'Ollama':
+                self.logger.error(f'Model {emb_model} is not locally found. '
+                                  f'Embedding config shall fall back.')
+                self.logger.warning(f'Please close the app and download model {emb_model} offline.')
+                while True:
+                    pass
 
     def aggregate_provider_profile(self):
         options: list = []

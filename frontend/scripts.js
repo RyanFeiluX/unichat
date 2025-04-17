@@ -728,7 +728,7 @@ function disableSaveButton(tabId) {
 function showAwaitingStatus() {
     const applyButton = document.getElementById('apply-config-button');
     applyButton.disabled = true;
-    applyButton.textContent = '配置变更部署进行中,请等待...';
+    applyButton.textContent = '配置变更部署进行中...';
 }
 
 // Function to hide awaiting status
