@@ -196,11 +196,12 @@ class UniConfig():
 
         if (not llm_provider) or (not check_model_avail(llm_model)):
             self.update_llmconfig(*self.get_default_llmconfig())
-
-            self.logger.error(f'Model {llm_model} is not locally found. Please run \"Ollama pull {llm_model}\" offline.')
-            self.logger.warning(f'Please close the app and download model {llm_model} offline.')
-            while True:
-                pass
+            if llm_provider == 'Ollama':
+                self.logger.error(f'Model {llm_model} is not locally found. '
+                                  f'Please run \"Ollama pull {llm_model}\" offline.')
+                self.logger.warning(f'Please close the app and download model {llm_model} offline.')
+                while True:
+                    pass
 
         emb_provider, emb_model = self.retrieve_embconfig()
         if (not emb_provider) or (not check_model_avail(emb_model)):
