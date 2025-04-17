@@ -58,10 +58,10 @@ class ModelConfig():
         elif llm_provider.upper() == 'OLLAMA':
             llm = ChatOllama(model=llm_model, temperature=0.3)
         else:
-            self.cfg.update_llmconfig(*self.cfg.get_default_llmconfig())
             # raise RuntimeWarning(f'LLM provider {llm_provider} is not supported yet.')
             self.logger.error(f'LLM provider {llm_provider} is not supported. '
                               f'Default LLM config shall be taken.')
+            self.cfg.update_llmconfig(*self.cfg.get_default_llmconfig())
             self.logger.warning(f'Please close and restart the app to take new LLM config effective...')
             while True:
                 pass
@@ -80,10 +80,10 @@ class ModelConfig():
             assert emb_model, f'One model must be specified in case of Ollama for embedding.'
             embeddings = OllamaEmbeddings(model=emb_model)
         else:
-            self.cfg.update_embconfig(*self.cfg.get_default_embconfig())
             # raise RuntimeWarning(f'Embedding provider {emb_provider} is not supported. Please check your setting.')
             self.logger.error(f'Embedding provider {emb_provider} is not supported. '
                               f'Default embedding config shall be taken.')
+            self.cfg.update_embconfig(*self.cfg.get_default_embconfig())
             self.logger.warning(f'Please close and restart the app to take new embedding config effective...')
             while True:
                 pass
