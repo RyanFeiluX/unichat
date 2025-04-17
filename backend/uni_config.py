@@ -16,6 +16,9 @@ class DeploymentProfile(BaseModel):
 class UniConfig():
 
     def __init__(self, app_root, logger):
+        self.factory_cfg = None
+        self.dcfg = None
+        self.scfg = None
         self.app_root = app_root
         self.logger = logger
         self.scfg_path = os.path.join(app_root, "backend", "sta_config.toml")
