@@ -58,24 +58,32 @@ class ModelConfig():
         elif llm_provider.upper() == 'OLLAMA':
             llm = ChatOllama(model=llm_model, temperature=0.3)
         else:
-            raise RuntimeWarning(f'LLM provider {llm_provider} is not supported yet.')
+            self.cfg.update_llmconfig(*self.cfg.get_default_llmconfig())
+            # raise RuntimeWarning(f'LLM provider {llm_provider} is not supported yet.')
+            self.logger.error(f'LLM provider {llm_provider} is not supported. '
+                              f'Default LLM config shall be taken.')
+            self.logger.warning(f'Please close and restart the app to take new LLM config effective...')
+            while True:
+                pass
         return llm
 
     def instantiate_emb(self, emb_provider: str, emb_model: str):
-        if emb_provider == 'OPENAI':
+        if emb_provider.upper() == 'OPENAI':
             embeddings = OpenAIEmbeddings(model=emb_model)  # "text-embedding-ada-002"
-        elif emb_provider == 'BAICHUAN':
+        elif emb_provider.upper() == 'BAICHUAN':
             embeddings = BaichuanTextEmbeddings(model=emb_model) if emb_model else BaichuanTextEmbeddings()
-        elif emb_provider == 'ZHIPUAI':
+        elif emb_provider.upper() == 'ZHIPUAI':
             embeddings = ZhipuAIEmbeddings()  # 'glm-3-turbo'
-        elif emb_provider.startswith('OLLAMA'):  # This branch is handled specially.
-            self.logger.info(f'NOTE: You have chosen Ollama as embedding framework. Please run up Ollama locally beforehand.')
+        elif emb_provider.upper().startswith('OLLAMA'):  # This branch is handled specially.
+            self.logger.info(f'NOTE: You have chosen Ollama as embedding framework. '
+                             f'Please run up Ollama locally beforehand.')
             assert emb_model, f'One model must be specified in case of Ollama for embedding.'
             embeddings = OllamaEmbeddings(model=emb_model)
         else:
             self.cfg.update_embconfig(*self.cfg.get_default_embconfig())
             # raise RuntimeWarning(f'Embedding provider {emb_provider} is not supported. Please check your setting.')
-            self.logger.error(f'Embedding provider {emb_provider} is not supported. Embedding config shall fall.')
+            self.logger.error(f'Embedding provider {emb_provider} is not supported. '
+                              f'Default embedding config shall be taken.')
             self.logger.warning(f'Please close and restart the app to take new embedding config effective...')
             while True:
                 pass

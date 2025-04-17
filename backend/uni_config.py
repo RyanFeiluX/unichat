@@ -120,15 +120,17 @@ class UniConfig():
             f.flush()
             self._changes_suspense += 1
 
-    def retrieve_llmconfig(self):
+    def retrieve_llmconfig(self, verbose=True):
         # llm
-        llm_provider = self.dcfg['Deployment']['LLM_PROVIDER'].upper()  # os.getenv("LLM_PROVIDER")
+        llm_provider = self.dcfg['Deployment']['LLM_PROVIDER']  # os.getenv("LLM_PROVIDER")
         if llm_provider:
-            self.logger.info(f'LLM provider : {llm_provider}')
+            if verbose:
+                self.logger.info(f'LLM Provider : {llm_provider}')
             # llm_model = os.getenv("LLM_MODEL") or os.getenv(f'{llm_provider}_LLM_MODEL')
             llm_model = (self.dcfg['Deployment']['LLM_MODEL']
                          or self.scfg['Providers'][llm_provider][f'{llm_provider}_LLM_MODEL'].split(',')[0])
-            self.logger.info(f'LLM model : {llm_model}')
+            if verbose:
+                self.logger.info(f'LLM Model : {llm_model}')
             if not llm_model:
                 self.logger.critical(f'Please configure at least a model for {llm_provider}.')
         else:
@@ -181,12 +183,14 @@ class UniConfig():
             f.flush()
             self._changes_suspense += 1
 
-    def retrieve_embconfig(self):
-        emb_provider = self.dcfg['Deployment']['EMB_PROVIDER'].upper()  # os.getenv('EMB_PROVIDER')
+    def retrieve_embconfig(self, verbose=True):
+        emb_provider = self.dcfg['Deployment']['EMB_PROVIDER']  # os.getenv('EMB_PROVIDER')
         if emb_provider:
-            self.logger.info(f'Embedding provider : {emb_provider}')
+            if verbose:
+                self.logger.info(f'Embedding Provider : {emb_provider}')
             emb_model = self.dcfg['Deployment']['EMB_MODEL']  # os.getenv(f"EMB_MODEL")
-            self.logger.info(f'Embedding model : {emb_model}')
+            if verbose:
+                self.logger.info(f'Embedding Model : {emb_model}')
             if not emb_model:
                 self.logger.critical(f'Please configure at least a model for {emb_provider}.')
         else:
@@ -195,8 +199,7 @@ class UniConfig():
 
     def santize(self):
         # cfg = UniConfig()
-        llm_provider, llm_model = self.retrieve_llmconfig()
-
+        llm_provider, llm_model = self.retrieve_llmconfig(verbose=False)
         if (not llm_provider) or (not check_model_avail(llm_model)):
             self.update_llmconfig(*self.get_default_llmconfig())
             if llm_provider == 'Ollama':
@@ -206,7 +209,7 @@ class UniConfig():
                 while True:
                     pass
 
-        emb_provider, emb_model = self.retrieve_embconfig()
+        emb_provider, emb_model = self.retrieve_embconfig(verbose=False)
         if (not emb_provider) or (not check_model_avail(emb_model)):
             self.update_embconfig(*self.get_default_embconfig())
             if llm_provider == 'Ollama':
