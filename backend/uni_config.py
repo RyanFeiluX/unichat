@@ -198,26 +198,30 @@ class UniConfig():
         return emb_provider, emb_model
 
     def santize(self):
-        # cfg = UniConfig()
+        to_suspend = False
         llm_provider, llm_model = self.retrieve_llmconfig(verbose=False)
-        if (not llm_provider) or (not check_model_avail(llm_model)):
+        if not llm_provider:
+            self.logger.warning(f'LLM provider is not set and LLM config falls down to default.')
             self.update_llmconfig(*self.get_default_llmconfig())
-            if llm_provider == 'Ollama':
-                self.logger.error(f'Model {llm_model} is not locally found. '
+        elif llm_provider == 'Ollama':
+            if not check_model_avail(llm_model):
+                self.logger.error(f'Under Ollama, model {llm_model} is not locally found. '
                                   f'Please run \"Ollama pull {llm_model}\" offline.')
                 self.logger.warning(f'Please close the app and download model {llm_model} offline.')
-                while True:
-                    pass
+                to_suspend = True
 
         emb_provider, emb_model = self.retrieve_embconfig(verbose=False)
-        if (not emb_provider) or (not check_model_avail(emb_model)):
+        if not emb_provider:
             self.update_embconfig(*self.get_default_embconfig())
-            if llm_provider == 'Ollama':
-                self.logger.error(f'Model {emb_model} is not locally found. '
+        elif llm_provider == 'Ollama':
+            if not check_model_avail(emb_model):
+                self.logger.error(f'Under Ollama, model {emb_model} is not locally found. '
                                   f'Embedding config shall fall back.')
                 self.logger.warning(f'Please close the app and download model {emb_model} offline.')
-                while True:
-                    pass
+                to_suspend = True
+        if to_suspend:
+            while True:
+                pass
 
     def aggregate_provider_profile(self):
         options: list = []
