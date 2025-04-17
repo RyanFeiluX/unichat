@@ -89,6 +89,7 @@ class QuestionRequest(BaseModel):
 
 # Define response model
 class AnswerResponse(BaseModel):
+    think: str
     answer: str
 
 
@@ -129,7 +130,8 @@ async def ask_question(request: QuestionRequest):
         final_answer = reasoning + summing
 
         # Return answer
-        answer = AnswerResponse(answer=final_answer)
+        # answer = AnswerResponse(answer=final_answer)
+        answer = AnswerResponse(think=reasoning, answer=summing)
         logger.debug(f'answer:{summing}')
         return answer
     except Exception as ee:

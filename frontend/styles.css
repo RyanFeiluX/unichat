@@ -135,22 +135,49 @@ body {
 /* 用户和助手的消息 */
 .chat-box .user {
     margin: 2px 0;
-    padding: 10px 15px;
+    padding: 10px 10px;
     background-color: #d1e7dd;
-    border-radius: 10px;
+    border-radius: 5px;
     align-self: flex-end;
-    max-width: 75%;
+    max-width: 100%;
     word-wrap: break-word;
 }
 
 .chat-box .assistant {
-    margin: 2px 0;
-    padding: 10px 15px;
+    margin: 5px 0;
+    padding: 10px 10px;
     background-color: #f8d7da;
-    border-radius: 10px;
+    border-radius: 5px;
     align-self: flex-start;
     max-width: 75%;
     word-wrap: break-word;
+}
+
+.chat-box .message-group {
+    margin: 5px 0;
+    padding: 5px 5px;
+    border-radius: 5px;
+    align-self: flex-start;
+    max-width: 75%;
+    word-wrap: break-word;
+    background-color: #f8d7da; /* Default background color for the group */
+}
+
+.chat-box .message-group .assistant.reasoning {
+    background-color: #d1d0d0;
+    max-width: 100%;
+    border-radius: 0px;
+/*    margin-top: 5px;*/
+    padding: 5px 5px;
+/*    border-bottom: 1px solid #007bff; *//* Separator line */
+/*    margin-bottom: 5px; *//* Space between reasoning and normal message */
+}
+
+.chat-box .message-group .assistant {
+    background-color: transparent; /* Remove the individual background color */
+    padding: 0; /* Remove the individual padding */
+    max-width: 100%;
+    padding: 5px 10px;
 }
 
 /* 输入容器 */

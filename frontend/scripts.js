@@ -42,7 +42,7 @@ function sendMessage() {
         return response.json();
     })
     .then(data => {
-        appendMessage('assistant', data.answer);
+        appendMessage('assistant', data.answer, think=data.think);
     })
     .catch(error => {
         if (error instanceof TypeError) {
@@ -58,14 +58,30 @@ function sendMessage() {
     document.getElementById('user-input').focus();
 }
 
-function appendMessage(sender, message) {
+function appendMessage(sender, message, think=null) {
     const chatBox = document.getElementById('chat-box');
+    const messageGroup = document.createElement('div');
+    messageGroup.className = 'message-group';
+
+    if (think && think.trim()!== "") {
+        const reasoningElement = document.createElement('div');
+        reasoningElement.className = 'assistant reasoning';
+        reasoningElement.innerHTML = marked.parse(think);
+        messageGroup.appendChild(reasoningElement);
+    }
+
     const messageElement = document.createElement('div');
-    messageElement.className = sender;
+    messageElement.className = sender;  //'assistant';
     // Use marked to render the Markdown message
-//    messageElement.innerText = message;
     messageElement.innerHTML = marked.parse(message);
-    chatBox.appendChild(messageElement);
+    messageGroup.appendChild(messageElement);
+
+    if (sender == 'assistant') {
+        chatBox.appendChild(messageGroup);
+    } else {
+        chatBox.appendChild(messageElement);
+    }
+//    chatBox.appendChild(messageGroup);
     chatBox.scrollTop = chatBox.scrollHeight;
 }
 
@@ -741,6 +757,9 @@ async function applyConfigChanges() {
             showCustomAlert('成功', '配置变更已成功应用。');
 
             queryConfigChangesIcon();
+
+            // Send the message when the config change deployment is completed
+            appendMessage('assistant', 'Config change deployment completed. New chat starts...');
         } else {
             showCustomAlert('失败', '应用配置变更时出现错误。');
         }
