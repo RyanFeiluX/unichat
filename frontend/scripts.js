@@ -294,19 +294,21 @@ function initializeModelTab() {
             acc[item.provider] = item.llm_model.map(model => ({ value: model, label: model }));
             return acc;
         }, {});
-        updateLlmModels();
+//        updateLlmModels();
 
         // Populate embedding models based on the selected provider
         embeddingModelsData = data.model_support.reduce((acc, item) => {
             acc[item.provider] = item.emb_model.map(model => ({ value: model, label: model }));
             return acc;
         }, {});
-        updateEmbeddingModels();
+//        updateEmbeddingModels();
 
         // Set selected values based on model_select
         document.getElementById('llm-provider').value = data.model_select.llm_provider || '';
+        updateLlmModels(); // Populate models based on selected provider
         document.getElementById('llm-model').value = data.model_select.llm_model || '';
         document.getElementById('embedding-provider').value = data.model_select.emb_provider || '';
+        updateEmbeddingModels(); // Populate models based on selected provider
         document.getElementById('embedding-model').value = data.model_select.emb_model || '';
 
         // Store original values
