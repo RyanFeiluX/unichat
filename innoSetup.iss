@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "UniChat"
-#define MyAppVersion "0.0.1.8"
+#define MyAppVersion "0.0.1.9"
 #define MyAppPublisher "Ryan Xiao"
 #define MyAppURL "https://gitcode.com/2301_77468151/UniChatApp"
 #define MyAppExeName "UniChat.exe"
