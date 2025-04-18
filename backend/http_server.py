@@ -1,6 +1,7 @@
 import os, sys, re
 import argparse
 import psutil
+from PIL import Image
 import yaml
 from pydantic import BaseModel
 import uvicorn
@@ -17,6 +18,8 @@ import asyncio
 import webbrowser
 # import signal
 import win32gui, win32api, win32con
+from win32con import WS_CAPTION
+
 from utils import check_model_avail
 # import win32console  # Import win32console to access the console buffer
 from logging_config import setup_logging
@@ -481,17 +484,49 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     max_retries = 5
-    retry_delay = 1  # 延迟1秒
+    retry_delay = 1  # Delay 1 second
+    addressed = False
     for i in range(max_retries):
         hwnd = win32gui.GetForegroundWindow()
         if hwnd:
+            addressed = True
+            logger.info(f'Locate the console {win32gui.GetWindowText(hwnd)}')
             break
         time.sleep(retry_delay)
-    # hwnd = win32gui.GetForegroundWindow()
-    win32gui.SetWindowText(hwnd, 'UniChat Window')
-    win_text = win32gui.GetWindowText(hwnd)
-    if win_text != 'UniChat Window':
-        logger.warning(f'Failed to modify the window text: {win_text}')
+    if not addressed:
+        logger.error(f'Main console window not found. Exit...')
+        exit(-1)
+
+    app_name = os.path.basename(sys.argv[0]).split('.')[0]
+    try:
+        win32gui.SetWindowText(hwnd, app_name)
+        win_text = win32gui.GetWindowText(hwnd)
+        if win_text != app_name:
+            logger.warning(f'Failed to modify the window text: {win_text}')
+        else:
+            logger.info(f'Successfully set the window title to {app_name}')
+    except Exception as e:
+        logger.error(f'Error in setting window title: {str(e)}')
+
+    # Set the application icon
+    icon_path = os.path.normpath(os.path.join(app_root, "resources", "icon2.ico"))
+    if os.path.exists(icon_path):
+        try:
+            # Try to open the icon file using Pillow
+            with Image.open(icon_path) as img:
+                icon = win32gui.LoadImage(0, icon_path, win32con.IMAGE_ICON, 0, 0,
+                                          win32con.LR_LOADFROMFILE | win32con.LR_DEFAULTSIZE)
+
+                if icon:
+                    # Set the icon for the console window
+                    win32gui.SendMessage(hwnd, win32con.WM_SETICON, win32con.ICON_BIG, icon)
+                    win32gui.SendMessage(hwnd, win32con.WM_SETICON, win32con.ICON_SMALL, icon)
+                else:
+                    logger.warning(f"Failed to load icon from {icon_path}. Using default icon.")
+        except Exception as e:
+            logger.warning(f"Failed to set Icon from {icon_path} with message: {str(e)}. Using default icon.")
+    else:
+        logger.warning(f"Icon file {icon_path} not found. Using default icon.")
 
     # Disable the close button
     style = win32gui.GetWindowLong(hwnd, win32con.GWL_STYLE)
