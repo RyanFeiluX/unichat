@@ -88,6 +88,7 @@ app.add_middleware(
 # Define request model
 class QuestionRequest(BaseModel):
     question: str
+    session_id: str
 
 
 # Define response model
@@ -102,7 +103,7 @@ async def ask_question(request: QuestionRequest):
     try:
         # Get user question
         user_question = request.question
-        session_id = "uid"
+        session_id = request.session_id
         logger.debug(f'session[{session_id}] question:{user_question}')
 
         # Build answer through RAG chain
@@ -161,7 +162,7 @@ class ModelSelect(BaseModel):
 
 @app.get("/api")
 async def fetch_any():
-    # print(f'GET: /api')
+    logger.info(f'GET: /api')
     return {'API': ['models', 'documents', 'upload-documents']}
 
 
@@ -173,6 +174,7 @@ class ModelConfig(BaseModel):
 # API for http://127.0.0.1:8000/api/models
 @app.get("/api/models", response_model=ModelConfig)  # Updated endpoint
 async def fetch_config():
+    logger.info(f'GET: /api/models')
     options = rag_service.cfg.aggregate_provider_profile()
     sel = rag_service.cfg.get_deployment_profile()
     return ModelConfig(model_support=options, model_select=sel)
@@ -184,6 +186,7 @@ class ModelConfigResult(BaseModel):
 # API for http://127.0.0.1:8000/api/models
 @app.post("/api/models", response_model=ModelConfigResult)  # Updated endpoint
 async def save_config(options: ModelSelect):
+    logger.info(f'POST: /api/models')
     unavail_models = set()
     if options.llm_provider == 'Ollama':
         if not check_model_avail(options.llm_model):
@@ -208,6 +211,7 @@ class UploadDocumentsResult(BaseModel):
 @app.post("/api/upload-documents", response_model=UploadDocumentsResult)
 async def upload_documents(doc_blob_list: List[UploadFile] = File(...),
                            system_prompt: str = Form(...), document_list: str = Form(...)):
+    logger.info(f'POST: /api/upload-documents')
     try:
         # Validate that at least one document is uploaded
         if not doc_blob_list:
@@ -247,6 +251,7 @@ class DocumentsConfigResult(BaseModel):
 
 @app.post("/api/documents", response_model=DocumentsConfigResult)
 async def update_documents(system_prompt: str = Form(...), document_list: str = Form(...)):
+    logger.info(f'POST: /api/documents')
     try:
         # Update the document list
         doc_list = document_list.split(',') if document_list else []
@@ -265,6 +270,7 @@ class DocumentFetchResult(BaseModel):
 
 @app.get("/api/documents", response_model=DocumentFetchResult)
 async def fetch_documents():
+    logger.info(f'GET: /api/documents')
     try:
         # Fetch the list of documents and system prompt
         # docs = rag_service.cfg.get_documents()
@@ -284,6 +290,7 @@ class ChangesSuspense(BaseModel):
 
 @app.get('/api/config-suspense', response_model=ChangesSuspense)
 async def query_config_suspense():
+    logger.info(f'GET: /api/config-suspense')
     return {'suspense': rag_service.cfg.changes_suspense}
 
 class ChangesApply(BaseModel):
@@ -291,6 +298,7 @@ class ChangesApply(BaseModel):
 
 @app.post('/api/config-apply', response_model=ChangesApply)
 async def apply_changes_suspense():
+    logger.info(f'POST: /api/config-apply')
     logger.info(f'Re-establishing the knowledge base...')
     try:
         # Here you can add the logic to apply the configuration changes

@@ -207,7 +207,7 @@ class RagService():
 
     def get_session_history(self, session_id) -> BaseChatMessageHistory:  # A key/session_id pair for a question/answer pair
         if session_id not in self.store:
-            # print(f'Create session \"{session_id}\"')
+            self.logger.info(f'Create session \"{session_id}\"')
             self.store[session_id] = ChatMessageHistory()
         return self.store[session_id]
 

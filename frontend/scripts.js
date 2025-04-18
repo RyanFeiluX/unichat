@@ -17,18 +17,34 @@ let originalDocumentList = [];
 // Add a flag to indicate if the document list has changed
 let hasUnsavedDocumentListChanges = false;
 
+// Generate a unique session ID
+function generateSessionId() {
+    return crypto.randomUUID();
+}
+
+// Get or create a session ID
+let sessionId = sessionStorage.getItem('sessionId');
+if (!sessionId) {
+    sessionId = generateSessionId();
+    sessionStorage.setItem('sessionId', sessionId);
+}
 function sendMessage() {
     const userInput = document.getElementById('user-input').value;
     if (userInput.trim() === "") return;
 
     appendMessage('user', userInput);
 
+    const data = {
+        question: userInput,
+        session_id: sessionId
+    };
+
     fetch(`${BASE_URL}/ask`, { // Use BASE_URL
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ question: userInput }),
+        body: JSON.stringify(data),
     })
     .catch(error => {
         console.error('Error during fetch:', error);
@@ -757,6 +773,10 @@ async function applyConfigChanges() {
         const data = await response.json();
         if (data.status_ok) {
             showCustomAlert('成功', '配置变更已成功应用。');
+
+            // Reset the session ID
+            sessionId = generateSessionId();
+            sessionStorage.setItem('sessionId', sessionId);
 
             queryConfigChangesIcon();
 
