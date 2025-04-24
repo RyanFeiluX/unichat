@@ -164,14 +164,13 @@ body {
 }
 
 .chat-box .message-group .assistant.reasoning {
-    background-color: #d1d0d0;
+    background-color: #f8d7da; /*#d1d0d0;*/
     max-width: 100%;
-    border-radius: 5px;
-/*    margin-top: 5px;*/
-    padding: 5px 5px;
-    padding-left: 10px;
-    border-left: 1px solid #007bff;  /* Left bar */
-/*    margin-bottom: 5px; *//* Space between reasoning and normal message */
+    border-radius: 0px;
+    padding: 0px 5px;
+    padding-left: 15px;
+    border-left: 2px solid #7f7f7f76;  /* Left bar */
+    color: #7f7f7f76;
 }
 
 .chat-box .message-group .assistant {
