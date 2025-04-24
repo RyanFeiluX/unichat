@@ -104,12 +104,11 @@ async def ask_question(request: QuestionRequest):
         # Get user question
         user_question = request.question
         session_id = request.session_id
-        logger.debug(f'session[{session_id}] question:{user_question}')
+        logger.debug(f'question:{user_question}')
 
         # Build answer through RAG chain
         # answer = qa_chain.run(user_question)
-        answer = rag_service.msg_chain.invoke({"input": user_question},
-                                              config={"configurable": {"session_id": session_id}})
+        answer = rag_service.__ask__(session_id, user_question)
 
         ai_answer = answer['answer']
         ai_thinks = []
@@ -117,8 +116,9 @@ async def ask_question(request: QuestionRequest):
         if len(thinks) > 0:
             [ai_thinks.append(th.strip()) for th in thinks if len(th.strip()) > 0]
             if len(ai_thinks) > 0:
-                reasoning = ('<<<<<< 推理开始 >>>>>>\n\n' + '\n------\n'.join(ai_thinks)
-                             + '\n\n<<<<<< 推理完成 >>>>>>\n\n')
+                # reasoning = ('<<<<<< 推理开始 >>>>>>\n\n' + '\n------\n'.join(ai_thinks)
+                #              + '\n\n<<<<<< 推理完成 >>>>>>\n\n')
+                reasoning = '\n'.join(ai_thinks)
             else:
                 reasoning = ''
         else:

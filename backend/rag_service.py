@@ -20,6 +20,8 @@ from langchain_community.document_loaders.csv_loader import CSVLoader
 from langchain_community.document_loaders.word_document import Docx2txtLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter, Language
 from langchain_text_splitters.markdown import MarkdownTextSplitter
+
+from langchain_core.messages import HumanMessage
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
@@ -245,7 +247,9 @@ class RagService():
 
         llm = self.modconfig.instantiate_llm(*self.cfg.retrieve_llmconfig())
         history_aware_retriever = create_history_aware_retriever(
-            llm, retriever, context_question_prompt_template
+            llm,
+            retriever,
+            context_question_prompt_template
         )
 
         # System message template
@@ -262,8 +266,8 @@ class RagService():
         # Define prompt template and add MessagesPlaceholder for multi-q/a chat
         qa_prompt_template = ChatPromptTemplate.from_messages([
             ("system", system_prompt),
-            MessagesPlaceholder(variable_name=self.memory_key),
-            ("user", "{input}")
+            MessagesPlaceholder(self.memory_key),
+            ("human", "{input}")
         ])
 
         qa_chain = create_stuff_documents_chain(llm, qa_prompt_template)
@@ -277,6 +281,12 @@ class RagService():
         )
 
         self._msg_chain = msg_hist_chain
+
+    def __ask__(self, session_id: str, question: str):
+        return self._msg_chain.invoke(
+            {'input': question},
+            config={'configurable': {'session_id': session_id}}
+        )
 
     def restart_service(self):
         self.setup_service(self._local_docs_dir, reset=True)
