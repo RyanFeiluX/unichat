@@ -171,6 +171,7 @@ class RagService():
     # Maintain history
     store = {}  # Keep all chat history. key:session_id,value:chat message
     memory_key = "history"
+    hb_size_limit = 128
 
     context_q_system_prompt = (
         "Given a chat history and the latest user question which might reference context in the chat history, "
@@ -326,13 +327,16 @@ class RagService():
             {'input': question},
             config={'configurable': {'session_id': session_id}}
         )
-        ai_summary, ai_reasoning = self._split_ai_answer(output['answer'])
+        ai_answering, ai_reasoning = self._split_ai_answer(output['answer'])
         # Add the summary answer to the chat history only
         session_history = self.get_session_history(session_id)
         if session_history.messages[-1].type == 'ai':
-            session_history.messages[-1].content = ai_summary  # Exclude reasoning
-
-        return ai_summary, ai_reasoning
+            session_history.messages[-1].content = ai_answering  # Exclude reasoning
+        num_excess = len(session_history.messages) - self.hb_size_limit
+        if num_excess > 0:
+            self.logger.info(f'Discard the earliest {num_excess} messages as history buffer size imit.')
+            [session_history.messages.pop(0) for _ in range(num_excess)]
+        return ai_answering, ai_reasoning
 
     def restart_service(self):
         self.setup_service(self._local_docs_dir, reset=True)
