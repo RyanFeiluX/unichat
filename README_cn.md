@@ -32,6 +32,7 @@ Deploy chatbot locally based on RAG technologies. Multiple LLM models are suppor
   * PUT /api/models：保存模型配置信息到 dyn_config.toml 文件。
   * GET /api/documents：获取知识库文档列表和系统提示词。
   * POST /api/upload-documents 和 POST /api/documents：上传文档和保存系统提示词到后端。
+  * GET /api/config-suspense：获取未生效的配置变化。
 ### console_window.py
 * 功能：实现自定义控制台窗口，用于显示日志信息。
 * 关键类和方法：
@@ -53,8 +54,8 @@ Deploy chatbot locally based on RAG technologies. Multiple LLM models are suppor
   * 复制配置文件、前端文件、资源文件和文档到打包目录。
 
 ### Setup.nsi
-* 功能：基于NSIS脚本语言的安装程序脚本，最后成一个单独的安装程序unichatSetup.exe.
+* 功能：安装程序脚本，最后成一个单独的安装程序unisetup.exe.
 * 工具
-  * NSIS软件。[下载地址](https://nsis.sourceforge.io/Download)
+  * Inno Setup编译器软件。[下载地址](https://inno-setup.en.lo4d.com/download)
 
   * 综上所述，这些代码文件共同构建了一个完整的智能助手应用程序，包括前端界面、后端服务、日志处理和打包部署等功能。

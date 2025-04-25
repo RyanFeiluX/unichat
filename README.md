@@ -40,8 +40,8 @@ These code files form an intelligent assistant application, encompassing front -
   - GET /api/models: Retrieves configuration information about supported and selected models.
   - PUT /api/models: Saves model configuration information to the dyn_config.toml file.
   - GET /api/documents: Retrieves the list of knowledge base documents and system prompts.
-  - POST /api/upload - documents and POST /api/documents: Uploads documents and saves system prompts to the back - end.
-
+  - POST /api/upload-documents and POST /api/documents: Uploads documents and saves system prompts to the back - end.
+  - GET /api/config-suspense: Check whether there is suspended config changes.
 ### console_window.py
 - Function: Implements a custom console window for displaying log information.
 - Key classes and methods:
@@ -50,10 +50,7 @@ These code files form an intelligent assistant application, encompassing front -
   - toggle_visibility(): Toggles the visibility of the console window.
 
 ### logging_config.py
-- Function: Configures log handling to redirect log information to the custom console window.
-- Key classes and methods:
-  - CustomStream: A custom stream class for writing log information to the console window.
-  - redirect_stream(): Redirects the log stream to the specified stream object.
+- Function: Provide a single entity for logging service.
 
 ## Packaging Scripts
 ### buildexe.bat
@@ -64,10 +61,10 @@ These code files form an intelligent assistant application, encompassing front -
   - Uses PyInstaller to package the back - end scripts.
   - Copies configuration files, front - end files, resource files, and documents to the packaging directory.
 
-### Setup.nsi
-- Function: An installation program script based on the NSIS scripting language, which finally creates a single installation program, unichatSetup.exe.
+### innoSetup.iss
+- Function: An installation program script, which finally creates a single installation program, unisetup.exe.
 - Tools:
-  - NSIS software. [Download link](https://nsis.sourceforge.io/Download)
+  - Inno Setup Compiler. [Download link](https://inno-setup.en.lo4d.com/download)
 
 In summary, these code files together build a complete intelligent assistant application, covering front - end interfaces, back - end services, log handling, and packaging and deployment features.
 ```
