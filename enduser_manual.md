@@ -6,7 +6,7 @@ UniChat is an intelligent assistant application that combines multiple large lan
 ## II. Installation
 
 ### 2.1 Obtaining the Installation Package
-UniChat is distributed as an installation package. You can get its installation package from a public location.
+UniChat is distributed as an installation package. You can get its installation package from [download](https://gitcode.com/2301_77468151/UniChatApp/releases).
 
 ### 2.2 Starting the Application
 After installation, you can launch the application as the other ordinate application. Once started, a console window will pop up, and the application will start an HTTP server. A few seconds later, a webpage is automatically opened for you. You can start your operation from the web page. 
