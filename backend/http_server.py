@@ -113,6 +113,9 @@ async def ask_question(request: QuestionRequest):
         final_answer = AnswerResponse(think=ai_reasoning, answer=ai_answering)
         logger.debug(f'answer:{ai_answering}')
         return final_answer
+    except asyncio.exceptions.CancelledError:
+        logger.info("Async task cancelled during ask_question. Ignoring...")
+        raise HTTPException(status_code=503, detail="Service is temporarily unavailable.")
     except Exception as ee:
         logger.error(f'{repr(ee)}')
         m_code = re.match(r'(.*Response \[(\d+)\].*|.*Error code: (\d+).*|.*status_code: (\d+).*)', str(ee))
@@ -394,7 +397,8 @@ def exit_app():
 
         # Log the end of the shutdown process
         logger.info("Application shut down gracefully.")
-
+    except asyncio.exceptions.CancelledError:
+        logger.info("Async task cancelled during shutdown. Ignoring...")
     except Exception as e:
         logger.error(f"Error in during shutdown: {e}")
 
