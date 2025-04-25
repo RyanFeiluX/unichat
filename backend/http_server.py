@@ -45,7 +45,7 @@ cnt_found = 0
 for proc in psutil.process_iter(['name']):
     p_name = os.path.normcase(proc.info['name'])
     if p_name == process_name and proc.pid != current_process.pid:
-        logger.warning(f'Another running instance(PID={proc.pid}) is detected. Exiting...')
+        logger.warning(f'Another {p_name} instance(PID={proc.pid}) is running. Exiting...')
         sys.exit(0)
 
 
@@ -108,36 +108,11 @@ async def ask_question(request: QuestionRequest):
 
         # Build answer through RAG chain
         # answer = qa_chain.run(user_question)
-        answer = rag_service.__ask__(session_id, user_question)
+        ai_answering, ai_reasoning = rag_service.__ask__(session_id, user_question)
 
-        ai_answer = answer['answer']
-        ai_thinks = []
-        thinks = re.findall(r'<think>([\s\S]*)</think>', ai_answer)
-        if len(thinks) > 0:
-            [ai_thinks.append(th.strip()) for th in thinks if len(th.strip()) > 0]
-            if len(ai_thinks) > 0:
-                # reasoning = ('<<<<<< 推理开始 >>>>>>\n\n' + '\n------\n'.join(ai_thinks)
-                #              + '\n\n<<<<<< 推理完成 >>>>>>\n\n')
-                reasoning = '\n'.join(ai_thinks)
-            else:
-                reasoning = ''
-        else:
-            reasoning = ''
-        if len(reasoning) > 0:
-            summary = re.match(r'[\s\S]*</think>([\s\S]*)', ai_answer)
-            if summary:
-                summing = summary.group(1).strip()
-            else:
-                summing = ''
-        else:
-            summing = ai_answer.strip()
-        final_answer = reasoning + summing
-
-        # Return answer
-        # answer = AnswerResponse(answer=final_answer)
-        answer = AnswerResponse(think=reasoning, answer=summing)
-        logger.debug(f'answer:{summing}')
-        return answer
+        final_answer = AnswerResponse(think=ai_reasoning, answer=ai_answering)
+        logger.debug(f'answer:{ai_answering}')
+        return final_answer
     except Exception as ee:
         logger.error(f'{repr(ee)}')
         m_code = re.match(r'(.*Response \[(\d+)\].*|.*Error code: (\d+).*|.*status_code: (\d+).*)', str(ee))

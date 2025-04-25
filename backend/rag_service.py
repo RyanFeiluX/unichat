@@ -1,5 +1,6 @@
-import os, sys
+import os, sys, re
 import shutil
+from typing import List, Dict, Union, Tuple
 from pydantic import BaseModel
 # from langchain_community.embeddings import OpenAIEmbeddings
 from langchain.chains import RetrievalQA
@@ -171,7 +172,7 @@ class RagService():
     store = {}  # Keep all chat history. key:session_id,value:chat message
     memory_key = "history"
 
-    context_system_prompt = (
+    context_q_system_prompt = (
         "Given a chat history and the latest user question which might reference context in the chat history, "
         "formulate a standalone question which can be understood without the chat history. "
         "Do NOT answer the question, just reformulate it if needed and otherwise return it as is."
@@ -184,11 +185,11 @@ class RagService():
         self.logger = logger
         self.cfg = UniConfig(app_root, logger)
         self.modconfig = ModelConfig(app_root, logger, self.cfg)
-        self._msg_chain = None
+        self._conversation_chain = None
 
     @property
     def msg_chain(self):
-        return self._msg_chain
+        return self._conversation_chain
 
     def remove_useless(self, doc_list: list):
         # Get the latest document list
@@ -207,17 +208,7 @@ class RagService():
                 os.remove(file_path)
                 self.logger.info(f"Removed the useless: {file_path}")
 
-    def get_session_history(self, session_id) -> BaseChatMessageHistory:  # A key/session_id pair for a question/answer pair
-        if session_id not in self.store:
-            self.logger.info(f'Create session \"{session_id}\"')
-            self.store[session_id] = ChatMessageHistory()
-        return self.store[session_id]
-
-    def setup_service(self, local_docs_dir, reset: bool = False):
-        if reset:
-            self.cfg.reload_config()
-        self._local_docs_dir = local_docs_dir
-
+    def _embed_documents(self):
         pages = self.modconfig.read_documents()
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=300,
@@ -231,28 +222,48 @@ class RagService():
         for j, t in enumerate(texts):
             t.id = f'Doc-{j}'
 
-        context_question_prompt_template = ChatPromptTemplate.from_messages(
-            [
-                ("system", self.context_system_prompt),
-                MessagesPlaceholder(self.memory_key),
-                ("human", "{input}"),
-            ]
-        )
-
         embeddings = self.modconfig.instantiate_emb(*self.cfg.retrieve_embconfig())
+
         # Choose vector DB and fill the DB
         db = FAISS.from_documents(texts, embeddings)
         # Get retriever and extract top results
         retriever = db.as_retriever(search_type="mmr", search_kwargs={"k": 3})
 
+        return retriever
+
+    def get_session_history(self, session_id) -> BaseChatMessageHistory:  # A key/session_id pair for a question/answer pair
+        if session_id not in self.store:
+            self.logger.info(f'Create session \"{session_id}\"')
+            self.store[session_id] = ChatMessageHistory()
+        return self.store[session_id]
+
+    def setup_service(self, local_docs_dir, reset: bool = False):
+        if reset:
+            self.cfg.reload_config()
+            self.store.clear()
+        self._local_docs_dir = local_docs_dir
+
+        retriever = self._embed_documents()
+
         llm = self.modconfig.instantiate_llm(*self.cfg.retrieve_llmconfig())
+
+        # Step 1: Contextualize the query based on chat history
+        contextualize_query_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", self.context_q_system_prompt),
+                MessagesPlaceholder(variable_name=self.memory_key),
+                ("human", "{input}"),
+            ]
+        )
+
+        # Step 2: Build a history-aware retriever to replace classic retriever in following steps.
         history_aware_retriever = create_history_aware_retriever(
             llm,
             retriever,
-            context_question_prompt_template
+            contextualize_query_prompt
         )
 
-        # System message template
+        # Step 3: Build system prompt
         deployment = self.cfg.get_deployment_profile()
         system_prompt = (f"""{self.cfg.get_robot_desc()}。
                        你的任务是根据下述给定的已知信息回答用户问题。
@@ -263,30 +274,65 @@ class RagService():
                        已知信息:""" +
                          """"{context} """)
 
-        # Define prompt template and add MessagesPlaceholder for multi-q/a chat
-        qa_prompt_template = ChatPromptTemplate.from_messages([
+        # Step 4: Define question-answer prompt with history for later conversation.
+        qa_prompt = ChatPromptTemplate.from_messages([
             ("system", system_prompt),
-            MessagesPlaceholder(self.memory_key),
+            MessagesPlaceholder(variable_name=self.memory_key),
             ("human", "{input}")
         ])
 
-        qa_chain = create_stuff_documents_chain(llm, qa_prompt_template)
-        rag_qa_chain = create_retrieval_chain(history_aware_retriever, qa_chain)
-        msg_hist_chain = RunnableWithMessageHistory(
-            rag_qa_chain,
+        # Step 5: Set up a sub-chain for question-answer purpose. LLM | Prompt
+        question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
+
+        # Step 6: Construct the chain based on RAG+History for multi-loop question-answer.
+        rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+
+        # Step 7: Construct runnable object of RAG+History chain.
+        conversation_rag_chain = RunnableWithMessageHistory(
+            rag_chain,
             self.get_session_history,
             input_messages_key="input",
             history_messages_key=self.memory_key,
             output_messages_key="answer",
         )
 
-        self._msg_chain = msg_hist_chain
+        self._conversation_chain = conversation_rag_chain
 
-    def __ask__(self, session_id: str, question: str):
-        return self._msg_chain.invoke(
+    def _split_ai_answer(self, ai_message: str)->Tuple[str, str]:
+        ai_thinks = []
+        m_thinks = re.findall(r'<think>([\s\S]*)</think>', ai_message)
+        if len(m_thinks) > 0:
+            [ai_thinks.append(th.strip()) for th in m_thinks if len(th.strip()) > 0]
+            if len(ai_thinks) > 0:
+                # reasoning = ('<<<<<< 推理开始 >>>>>>\n\n' + '\n------\n'.join(ai_thinks)
+                #              + '\n\n<<<<<< 推理完成 >>>>>>\n\n')
+                ai_reasoning = '\n'.join(ai_thinks)
+            else:
+                ai_reasoning = ''
+        else:
+            ai_reasoning = ''
+        if len(ai_reasoning) > 0:
+            m_summary = re.match(r'[\s\S]*</think>([\s\S]*)', ai_message)
+            if m_summary:
+                ai_summary = m_summary.group(1).strip()
+            else:
+                ai_summary = ''
+        else:
+            ai_summary = ai_message.strip()
+        return ai_summary, ai_reasoning
+
+    def __ask__(self, session_id: str, question: str)->Tuple[str,str]:
+        output = self._conversation_chain.invoke(
             {'input': question},
             config={'configurable': {'session_id': session_id}}
         )
+        ai_summary, ai_reasoning = self._split_ai_answer(output['answer'])
+        # Add the summary answer to the chat history only
+        session_history = self.get_session_history(session_id)
+        if session_history.messages[-1].type == 'ai':
+            session_history.messages[-1].content = ai_summary  # Exclude reasoning
+
+        return ai_summary, ai_reasoning
 
     def restart_service(self):
         self.setup_service(self._local_docs_dir, reset=True)
