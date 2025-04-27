@@ -92,13 +92,82 @@ function appendMessage(sender, message, think=null) {
     messageElement.innerHTML = marked.parse(message);
     messageGroup.appendChild(messageElement);
 
+    // Create a container for the copy and download buttons
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'msg-handling-button-container';
+
+    // Add copy button
+    const copyButton = document.createElement('button');
+    copyButton.textContent = '复制';
+    config_event_for_copybutton(copyButton);
+    buttonContainer.appendChild(copyButton);
+
+    // Add download button
+    const downloadButton = document.createElement('button');
+    downloadButton.textContent = '下载';
+    const dropdown = document.createElement('select');
+    const txtOption = document.createElement('option');
+    txtOption.value = 'txt';
+    txtOption.textContent = '.txt';
+    dropdown.appendChild(txtOption);
+    const docxOption = document.createElement('option');
+    docxOption.value = 'docx';
+    docxOption.textContent = '.docx';
+    dropdown.appendChild(docxOption);
+
+    config_event_for_download_button(downloadButton);
+    buttonContainer.appendChild(downloadButton);
+    buttonContainer.appendChild(dropdown);
+
     if (sender == 'assistant') {
         chatBox.appendChild(messageGroup);
+        chatBox.appendChild(buttonContainer);
     } else {
         chatBox.appendChild(messageElement);
     }
 //    chatBox.appendChild(messageGroup);
     chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function config_event_for_copybutton(copyButton) {
+    copyButton.addEventListener('click', () => {
+        const textToCopy = messageElement.textContent;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            console.log('Copied to clipboard');
+        }).catch((err) => {
+            console.error('Failed to copy: ', err);
+        });
+    });
+}
+
+function config_event_for_download_button(downloadButton) {
+    downloadButton.addEventListener('click', () => {
+        const selectedFormat = dropdown.value;
+        const textToDownload = messageElement.textContent;
+        if (selectedFormat === 'txt') {
+            const blob = new Blob([textToDownload], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'message.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        } else if (selectedFormat === 'docx') {
+            // You need to use a library like mammoth.js to convert text to docx
+            // Here is a simple example of creating a docx file using mammoth.js
+            const { createDocx } = require('mammoth');
+            const docx = createDocx({
+                content: textToDownload
+            });
+            const blob = new Blob([docx], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'message.docx';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    });
 }
 
 function keyDown(e) {

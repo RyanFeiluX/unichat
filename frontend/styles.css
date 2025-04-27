@@ -139,7 +139,7 @@ body {
     background-color: #d1e7dd;
     border-radius: 5px;
     align-self: flex-end;
-    max-width: 100%;
+    max-width: 75%;
     word-wrap: break-word;
 }
 
@@ -155,6 +155,7 @@ body {
 
 .chat-box .message-group {
     margin: 5px 0;
+    margin-bottom: 0;  /* Adjust bottom margin to make space for the buttons */
     padding: 10px 15px;
     border-radius: 10px;
     align-self: flex-start;
@@ -177,6 +178,14 @@ body {
     background-color: transparent; /* Remove the individual background color */
     padding: 0; /* Remove the individual padding */
     max-width: 100%;
+}
+
+/* New styles for the button container */
+.msg-handling-button-container {
+    display: flex;
+    gap: 5px;
+    margin-top: 5px;
+    margin-left: 10px; /* Adjust the margin to position it next to the message box */
 }
 
 /* 输入容器 */
