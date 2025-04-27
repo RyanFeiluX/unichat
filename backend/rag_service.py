@@ -242,7 +242,8 @@ class RagService():
         if reset:
             self.cfg.reload_config()
             self.store.clear()
-        self._local_docs_dir = local_docs_dir
+        else:
+            self._local_docs_dir = local_docs_dir
 
         retriever = self._embed_documents()
 
