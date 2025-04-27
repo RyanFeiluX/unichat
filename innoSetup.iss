@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "UniChat"
-#define MyAppVersion "0.0.1.10"
+#define MyAppVersion "0.0.1.9"
 #define MyAppPublisher "Ryan Xiao"
 #define MyAppURL "https://gitcode.com/2301_77468151/UniChatApp"
 #define MyAppExeName "UniChat.exe"
@@ -34,6 +34,7 @@ InfoAfterFile=D:\src\unichat\enduser_manual.md
 ; Uncomment the following line to run in non administrative install mode (install for current user only).
 ;PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
+OutputDir=output
 OutputBaseFilename=unisetup
 SolidCompression=yes
 WizardStyle=modern
@@ -50,6 +51,9 @@ Source: "D:\src\unichat\dist\UniChat\*"; DestDir: "{app}"; Flags: ignoreversion 
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
-Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{autoprograms}\{#MyAppName}"; Parameters: "--dist-mode"; Filename: "{app}\{#MyAppExeName}"
+Name: "{autodesktop}\{#MyAppName}"; Parameters: "--dist-mode"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+
+[Run]
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
