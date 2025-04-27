@@ -175,6 +175,11 @@ function openConfigModal() {
 }
 
 function closeConfigModal() {
+    const configModal = document.getElementById('config-modal');
+    const closeButton = configModal.getElementsByClassName('close')[0];
+    if (closeButton.disabled) {
+        return; // If the close button is disabled, do nothing
+    }
     console.log('hasUnsavedModelChanges:', hasUnsavedModelChanges);
     console.log('hasUnsavedKnowledgeChanges:', hasUnsavedKnowledgeChanges);
     console.log('hasUnsavedDocumentListChanges:', hasUnsavedDocumentListChanges);
@@ -747,6 +752,16 @@ function showAwaitingStatus() {
     const applyButton = document.getElementById('apply-config-button');
     applyButton.disabled = true;
     applyButton.textContent = '配置变更部署进行中...';
+
+    const configModal = document.getElementById('config-modal');
+    if (configModal) {
+        const closeButton = configModal.getElementsByClassName('close')[0];
+        if (closeButton) {
+            closeButton.disabled = true;
+            closeButton.style.color = '#6c757d'; // Set the text color to gray
+            closeButton.style.cursor = 'not-allowed';
+        }
+    }
 }
 
 // Function to hide awaiting status
@@ -754,6 +769,16 @@ function hideAwaitingStatus() {
     const applyButton = document.getElementById('apply-config-button');
     applyButton.disabled = false;
     applyButton.textContent = '应用配置变更';
+
+    const configModal = document.getElementById('config-modal');
+    if (configModal) {
+        const closeButton = configModal.getElementsByClassName('close')[0];
+        if (closeButton) {
+            closeButton.disabled = false;
+            closeButton.style.color = '#aaa'; // Restore the original text color
+            closeButton.style.cursor = 'pointer';
+        }
+    }
 }
 
 // Function to apply configuration changes

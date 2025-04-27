@@ -261,6 +261,11 @@ body {
     text-decoration: none;
 }
 
+#config-modal .close:disabled {
+    color: #6c757d;
+    cursor: not-allowed;
+}
+
 /* Tabs within the Configuration Modal */
 .tabs {
     display: flex;
