@@ -34,6 +34,7 @@ InfoAfterFile=D:\src\unichat\enduser_manual.md
 ; Uncomment the following line to run in non administrative install mode (install for current user only).
 ;PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
+OutputDir=output
 OutputBaseFilename=unisetup
 SolidCompression=yes
 WizardStyle=modern
@@ -52,4 +53,7 @@ Source: "D:\src\unichat\dist\UniChat\*"; DestDir: "{app}"; Flags: ignoreversion 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+
+[Run]
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
