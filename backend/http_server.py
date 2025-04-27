@@ -196,7 +196,7 @@ async def upload_documents(doc_blob_list: List[UploadFile] = File(...),
             raise HTTPException(status_code=422, detail="No documents were uploaded.")
 
         # Validate that the system prompt is not empty
-        if not system_prompt.strip():
+        if (not system_prompt) or (len(system_prompt.strip()) == 0):
             raise HTTPException(status_code=422, detail="System prompt cannot be empty.")
 
         if not os.path.exists(LOCAL_DOCS_DIR):
@@ -240,7 +240,7 @@ async def update_documents(system_prompt: str = Form(...), document_list: str = 
 
         return {"message": "Documents and system prompt uploaded and saved successfully.", "status_ok": True}
     except Exception as ee:
-        raise HTTPException(status_code=422, detail=f"Error uploading documents or saving system prompt: {str(ee)}")
+        raise HTTPException(status_code=422, detail=f"Error in updating document list or system prompt: {str(ee)}")
 
 class DocumentFetchResult(BaseModel):
     documents: list

@@ -196,6 +196,9 @@ class RagService():
         # Get the latest document list
         latest_documents = [doc.strip() for doc in doc_list]
 
+        if not os.path.isdir(self._local_docs_dir):
+            self.logger.error(f'{self._local_docs_dir} is not a directory.')
+
         # Get the list of all files in the local_docs folder
         all_files = os.listdir(self._local_docs_dir)
 
@@ -207,7 +210,7 @@ class RagService():
             file_path = os.path.join(self._local_docs_dir, f)
             if os.path.isfile(file_path):
                 os.remove(file_path)
-                self.logger.info(f"Removed the useless: {file_path}")
+                self.logger.info(f"Remove the useless: {file_path}")
 
     def _embed_documents(self):
         pages = self.modconfig.read_documents()
@@ -242,7 +245,8 @@ class RagService():
         if reset:
             self.cfg.reload_config()
             self.store.clear()
-        self._local_docs_dir = local_docs_dir
+        else:
+            self._local_docs_dir = local_docs_dir
 
         retriever = self._embed_documents()
 
