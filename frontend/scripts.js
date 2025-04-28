@@ -96,16 +96,16 @@ function appendMessage(sender, message, think=null) {
     const buttonContainer = document.createElement('div');
     buttonContainer.className = 'msg-handling-button-container';
 
-    // Add copy button
     const copyButton = document.createElement('button');
     copyButton.textContent = '复制';
-    config_event_for_copybutton(copyButton);
+    config_event_for_copy_button(messageElement, copyButton);
     buttonContainer.appendChild(copyButton);
 
-    // Add download button
     const downloadButton = document.createElement('button');
-    downloadButton.textContent = '下载';
+    downloadButton.textContent = '下载为';
+
     const dropdown = document.createElement('select');
+    dropdown.style.display = 'none';
     const txtOption = document.createElement('option');
     txtOption.value = 'txt';
     txtOption.textContent = '.txt';
@@ -115,7 +115,7 @@ function appendMessage(sender, message, think=null) {
     docxOption.textContent = '.docx';
     dropdown.appendChild(docxOption);
 
-    config_event_for_download_button(downloadButton);
+    config_event_for_download_button(messageElement, downloadButton, dropdown);
     buttonContainer.appendChild(downloadButton);
     buttonContainer.appendChild(dropdown);
 
@@ -129,7 +129,7 @@ function appendMessage(sender, message, think=null) {
     chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-function config_event_for_copybutton(copyButton) {
+function config_event_for_copy_button(messageElement, copyButton, dropdown) {
     copyButton.addEventListener('click', () => {
         const textToCopy = messageElement.textContent;
         navigator.clipboard.writeText(textToCopy).then(() => {
@@ -140,8 +140,15 @@ function config_event_for_copybutton(copyButton) {
     });
 }
 
-function config_event_for_download_button(downloadButton) {
+function config_event_for_download_button(messageElement, downloadButton, dropdown) {
     downloadButton.addEventListener('click', () => {
+        dropdown.style.display = 'block';
+        dropdown.value = '';
+        dropdown.focus();
+        dropdown.click();
+    });
+
+    dropdown.addEventListener('change', () => {
         const selectedFormat = dropdown.value;
         const textToDownload = messageElement.textContent;
         if (selectedFormat === 'txt') {
@@ -167,6 +174,7 @@ function config_event_for_download_button(downloadButton) {
             a.click();
             URL.revokeObjectURL(url);
         }
+        dropdown.style.display = 'none';
     });
 }
 
