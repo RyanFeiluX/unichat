@@ -108,11 +108,11 @@ function appendMessage(sender, message, think=null) {
     dropdown.style.display = 'none';
     const txtOption = document.createElement('option');
     txtOption.value = 'txt';
-    txtOption.textContent = '.txt';
+    txtOption.textContent = '*.txt';
     dropdown.appendChild(txtOption);
     const docxOption = document.createElement('option');
     docxOption.value = 'docx';
-    docxOption.textContent = '.docx';
+    docxOption.textContent = '*.docx';
     dropdown.appendChild(docxOption);
 
     config_event_for_download_button(messageElement, downloadButton, dropdown);
@@ -143,9 +143,8 @@ function config_event_for_copy_button(messageElement, copyButton, dropdown) {
 function config_event_for_download_button(messageElement, downloadButton, dropdown) {
     downloadButton.addEventListener('click', () => {
         dropdown.style.display = 'block';
-        dropdown.value = '';
+        dropdown.value = '请选择';
         dropdown.focus();
-        dropdown.click();
     });
 
     dropdown.addEventListener('change', () => {
