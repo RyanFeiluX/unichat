@@ -155,6 +155,7 @@ function config_event_for_download_button(messageElement, downloadButton, dropdo
         dropdown.style.display = 'block';
         dropdown.value = 'Select';
         dropdown.focus();
+    });
 
     // Click on other parts of the page to close the dropdown list
     document.addEventListener('click', (e) => {
