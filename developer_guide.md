@@ -149,11 +149,37 @@ http://localhost:63342/unichat/frontend/index.html
 2. Click the "发送" (Send) button to send your question to the assistant.
 3. The assistant will process your question and display the answer in the chat window.
 
-### 4.3 Uploading Documents
+### 4.3 Updating Models
+You can fetch and update deployed models through the application's API. To do this, send a GET/POST request to the `/api/models` endpoint with the following parameters:
+- **`llm_providers`**: A list of LLM model providers.
+- **`llm_models`**: A list of LLM models published by specific provider.
+- **`emb_providers`**: A list of Embedding model providers.
+- **`emb_models`**: A list of Embedding models published by specific provider.
+
+### 4.4 Uploading Documents
 You can upload your own knowledge base documents through the application's API. To do this, send a POST request to the `/api/upload-documents` endpoint with the following parameters:
 - **`documents`**: A list of files to upload.
 - **`system_prompt`**: A system prompt for the assistant.
 - **`document_list`**: A comma-separated list of document names.
+
+### 4.5 Updating Documents
+You can upload your own knowledge base documents through the application's API. To do this, send a POST request to the `/api/upload-documents` endpoint with the following parameters:
+- **`system_prompt`**: A system prompt for the assistant, pointing to the same as $4.3.
+- **`document_list`**: A comma-separated list of document names.
+
+### 4.6 Querying Suspensive Config Changes
+You can query whether there are suspensive config changes through the application's API. To do this, send a GET request to the `/api/config-suspense` endpoint with the following parameters:
+- **`documents`**: A list of files to upload.
+- **`system_prompt`**: A system prompt for the assistant.
+- **`document_list`**: A comma-separated list of document names.
+
+### 4.7 Applying Config Changes
+You can launch config changes deployment procedure through the application's API. To do this, send a POST request to the `/api/config-apply` endpoint without any following.
+ 
+### 4.8 File Format Conversion
+You can convert file format through the application's API. To do this, send a POST request to the `/api/file-format` endpoint without any following.
+- **`data_blob`**: The blob of the file to be converted.
+- **`ext_name`**: Extension name of target file.
 
 Here is an example of how to use the API in JavaScript:
 ```javascript
