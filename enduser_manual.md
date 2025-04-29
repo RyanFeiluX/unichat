@@ -57,6 +57,12 @@ Click the configuration button (gear icon) in the upper - right corner of the ch
 ### 4.4 Uploading Knowledge Base Documents
 If you need to upload your own knowledge base documents, you can use the API provided by the application. For specific operation methods, please refer to the development documentation or contact the technical support team.
 
+### 4.5 Apply Config Changes
+Click `Apply Config Changes` to take it effective. Actually, backend makes it via restarting RAG service.
+
+### 4.6 Downloading Assistant Message
+You have chances to download specific assistant message in expected format via clicking `Download As` button.
+
 ## V. Frequently Asked Questions
 
 ### 5.1 Model Not Found
