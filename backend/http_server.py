@@ -1,12 +1,17 @@
 import os, sys, re
 import argparse
+# import shutil
+import pypandoc
+import tempfile
+import chardet
+
 import psutil
 from PIL import Image
 import yaml
 from pydantic import BaseModel
 import uvicorn
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
-import tomlkit  # Import tomlkit for round-trip parsing
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Response
+# import tomlkit  # Import tomlkit for round-trip parsing
 from typing import List, Dict, Union
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
@@ -190,15 +195,16 @@ class UploadDocumentsResult(BaseModel):
 async def upload_documents(doc_blob_list: List[UploadFile] = File(...),
                            system_prompt: str = Form(...), document_list: str = Form(...)):
     logger.info(f'POST: /api/upload-documents')
+
+    # Validate that at least one document is uploaded
+    if not doc_blob_list:
+        raise HTTPException(status_code=422, detail="No documents were uploaded.")
+
+    # Validate that the system prompt is not empty
+    if not system_prompt.strip():
+        raise HTTPException(status_code=422, detail="System prompt cannot be empty.")
+
     try:
-        # Validate that at least one document is uploaded
-        if not doc_blob_list:
-            raise HTTPException(status_code=422, detail="No documents were uploaded.")
-
-        # Validate that the system prompt is not empty
-        if not system_prompt.strip():
-            raise HTTPException(status_code=422, detail="System prompt cannot be empty.")
-
         if not os.path.exists(LOCAL_DOCS_DIR):
             os.makedirs(LOCAL_DOCS_DIR)  # Ensure the directory for saving files exists
 
@@ -286,6 +292,65 @@ async def apply_changes_suspense():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post('/api/file-format')
+async def convert_fformat(data_blob: UploadFile = File(...),
+                          ext_name: str = Form(...), src_fmt: str = Form(...)):
+    logger.info(f'POST: /api/file-format')
+    if not data_blob:
+        raise HTTPException(status_code=422, detail="No file data is provided.")
+    if ext_name not in ['txt', 'docx']:
+        raise HTTPException(status_code=422, detail=f"Target format {ext_name} is unsupported.")
+    if src_fmt not in ['md', 'html']:
+        raise HTTPException(status_code=422, detail=f"Origin format {src_fmt} is unsupported.")
+    try:
+        temp_dir = tempfile.gettempdir()
+        file_content = await data_blob.read()
+        if not file_content:
+            logger.error("The uploaded file is empty.")
+            raise HTTPException(status_code=422, detail="The uploaded file is empty.")
+
+        result = chardet.detect(file_content)
+        encoding = result['encoding']
+        confidence = result['confidence']
+        logger.info(f"Original: Detected encoding: {encoding} with confidence: {confidence}")
+
+        decoded_content = file_content.decode(encoding)
+        logger.info(f'{encoding} decoding attempt succeed')
+    except UnicodeDecodeError as ude:
+        logger.error(f"Error in decoding Unicode: {repr(ude)}")
+        raise HTTPException(status_code=500, detail=f"Error in decoding Unicode: {repr(ude)}")
+    except Exception as e:
+        logger.error(f"Error in handling uploaded file: {e}")
+        raise HTTPException(status_code=500, detail=f"Error in handling uploaded file: {e}")
+
+    try:
+        with tempfile.NamedTemporaryFile(dir=temp_dir, delete=False) as tmpout:
+            # pypandoc.convert_file(tmpin.name, ext_name, format='md', outputfile=tmpout.name)
+            out = pypandoc.convert_text(decoded_content, ext_name, format=src_fmt, outputfile=tmpout.name)
+            logger.info(f"File conversion to {ext_name} completed. {tmpout.name} is generated")
+            with open(tmpout.name, mode='rb') as f:
+                result_bytes = f.read()
+            logger.info(f"File is converted successfully to {ext_name}: {len(result_bytes)} bytes")
+
+            headers = {
+                'Content-Type': f'application/{ext_name}',
+                'Content-Disposition': f'attachment; filename=converted_file.{ext_name}'
+            }
+
+            return Response(content=result_bytes, headers=headers)
+    except UnicodeDecodeError as ude:
+        logger.error(f"Error in converting file: {str(ude)}")
+        raise HTTPException(status_code=500, detail=f"Error in converting file: {str(ude)}")
+    except Exception as e:
+        logger.error(f"Error in converting file: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error in converting file: {str(e)}")
+    finally:
+        if 'tmpout' in locals() and os.path.exists(tmpout.name):
+            os.remove(tmpout.name)
+
+
+#############
+# Handle UI
 def toggle_console_state(win_handler, q_action):
     visible = win32gui.IsWindowVisible(win_handler)
     if visible:

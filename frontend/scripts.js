@@ -88,6 +88,8 @@ function appendMessage(sender, message, think=null) {
 
     const messageElement = document.createElement('div');
     messageElement.className = sender;  //'assistant';
+    // Save the raw Markdown content
+    messageElement.dataset.rawMarkdown = message;
     // Use marked to render the Markdown message
     messageElement.innerHTML = marked.parse(message);
     messageGroup.appendChild(messageElement);
@@ -149,32 +151,83 @@ function config_event_for_download_button(messageElement, downloadButton, dropdo
 
     dropdown.addEventListener('change', () => {
         const selectedFormat = dropdown.value;
+        // Get the raw Markdown content
+        const mdToDownload = messageElement.dataset.rawMarkdown;
+        // Use innerHTML to preserve formatting
+        const htmlToDownload = messageElement.innerHTML;
         const textToDownload = messageElement.textContent;
-        if (selectedFormat === 'txt') {
-            const blob = new Blob([textToDownload], { type: 'text/plain' });
+
+        function downloadFile(blob, fileName) {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'message.txt';
-            a.click();
-            URL.revokeObjectURL(url);
-        } else if (selectedFormat === 'docx') {
-            // You need to use a library like mammoth.js to convert text to docx
-            // Here is a simple example of creating a docx file using mammoth.js
-            const { createDocx } = require('mammoth');
-            const docx = createDocx({
-                content: textToDownload
-            });
-            const blob = new Blob([docx], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'message.docx';
+            a.download = fileName;
             a.click();
             URL.revokeObjectURL(url);
         }
+
+        if (selectedFormat === 'txt') {
+            const blob = new Blob([textToDownload], { type: 'text/plain' });
+            const timestamp = new Date().getTime();
+            const fileName = `message_${timestamp}.txt`;
+            downloadFile(blob, fileName);
+        } else if (selectedFormat === 'docx') {
+            const blob = convert_fformat(htmlToDownload, selectedFormat, 'html').then(blob => {
+                const timestamp = new Date().getTime();
+                const fileName = `message_${timestamp}.docx`;
+                downloadFile(blob, fileName);
+            }).catch(error => {
+                console.error('Error in converting to docx:', error);
+            });
+        }
         dropdown.style.display = 'none';
     });
+}
+
+async function convert_fformat(textToDownload, formatTo, formatFrom) {
+    try {
+        const formData = new FormData();
+        const blob = new Blob([textToDownload], { type: 'text/plain' });
+        const file = new File([blob], 'message.txt', { type: 'text/plain' });
+        formData.append('data_blob', file);
+        formData.append('ext_name', formatTo);
+        formData.append('src_fmt', formatFrom);
+
+        const response = await fetch(`${BASE_URL}/api/file-format`, {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!response.ok) {
+            throw new Error(`Server error: ${await response.text()}`);
+        }
+
+        // Get binary data of converted file
+        const resultBlob = await response.blob();
+
+        const contentType = response.headers.get('Content-Type');
+        const extnameMatch = contentType.match(/application\/(.*)/);
+        ename = extnameMatch ? extnameMatch[1] : ""
+        if (ename != formatTo) {
+            console.error('Target file format is mismatched');
+        }
+
+//        // 从 Content-Disposition 头中获取文件名
+//        const contentDisposition = response.headers.get('Content-Disposition');
+//        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+//        const filename = filenameMatch ? filenameMatch[1].replace(/['"]/g, '') : `converted_file.${ext_name}`;
+
+        return resultBlob
+
+    } catch (error) {
+        if (error instanceof TypeError) {
+            console.error('Network error:', error);
+            throw new Error('网络错误，请检查您的网络连接。');
+        } else {
+            console.error('Server error:', error);
+            throw error;
+        }
+    }
 }
 
 function keyDown(e) {
