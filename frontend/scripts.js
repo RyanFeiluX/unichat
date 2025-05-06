@@ -295,6 +295,23 @@ window.addEventListener("load",function(){
     //后续控制交互行为或者处理业务的js代码
 })
 
+// scripts.js
+async function fetchAppVersion() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/app-info`, { method: 'GET' });
+        const data = await response.json();
+        const appVersionElement = document.getElementById('app-version');
+        if (appVersionElement) {
+            appVersionElement.textContent = `App Version: ${data.app_version}`;
+        }
+    } catch (error) {
+        console.error('Error in fetching app version:', error);
+    }
+}
+
+// Call the function when the page loads
+window.addEventListener('DOMContentLoaded', fetchAppVersion);
+
 // Function to fetch config changes suspended state and update icon color
 async function queryConfigChangesIcon() {
     try {

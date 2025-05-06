@@ -67,10 +67,10 @@ try:
     # Open and read the .yml file
     with open(os.path.join(app_root, 'metadata.yml'), 'r') as file:
         metadata = yaml.safe_load(file)
-    version = metadata['Version'].strip()
-    logger.info(f'App version: {version}')
+    app_version = metadata['Version'].strip()
+    logger.info(f'App version: {app_version}')
 except FileNotFoundError:
-    version = 'Unknown'
+    app_version = 'Unknown'
     logger.warning('Version file not found. Using "Unknown" as version number.')
 
 user_url = "http://localhost:63342/unichat/frontend/index.html"
@@ -348,6 +348,13 @@ async def convert_fformat(data_blob: UploadFile = File(...),
         if 'tmpout' in locals() and os.path.exists(tmpout.name):
             os.remove(tmpout.name)
 
+class AppInfo(BaseModel):
+    app_version: str
+
+@app.get('/api/app-info')
+async def get_info():
+    logger.info(f'GET: /api/app-info')
+    return {'app_version': app_version}
 
 #############
 # Handle UI
