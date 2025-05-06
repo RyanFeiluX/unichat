@@ -358,6 +358,7 @@ def toggle_console_state(win_handler, q_action):
         q_action.setText('Show Console')
     else:
         win32gui.ShowWindow(win_handler, win32con.SW_SHOW)
+        win32gui.SetForegroundWindow(win_handler)
         q_action.setText('Hide Console')
 
 def update_tray_menu(visible, q_action):
