@@ -383,6 +383,11 @@ def create_system_tray(win_handler):
         # Create a menu for the system tray icon
         tray_menu = QMenu()
 
+        webbrowser.open_new_tab(user_url)
+        newchat_action = QAction('New Chat', tray_menu)
+        newchat_action.triggered.connect(lambda action: webbrowser.open_new_tab(user_url))
+        tray_menu.addAction(newchat_action)
+
         ollama_action = QAction('Ollama Setting', tray_menu)
         ollama_action.triggered.connect(ollsetting.open_ollama_settings)
         tray_menu.addAction(ollama_action)
