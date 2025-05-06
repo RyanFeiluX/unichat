@@ -184,8 +184,22 @@ body {
 .msg-handling-button-container {
     display: flex;
     gap: 5px;
-    margin-top: 5px;
+    margin-top: 0px;
+    margin-bottom: 5px;
     margin-left: 10px; /* Adjust the margin to position it next to the message box */
+}
+
+.msg-handling-button-container button {
+    border: 1px solid #ccc; /* Gray border */
+    font-size: 12px; /* Smaller font size */
+    padding: 2px 5px; /* Adjust padding for better appearance */
+    border-radius: 3px; /* Optional: Add rounded corners */
+    background-color: #ecebeb; /* Optional: Set background color */
+    color: #888787; /* Optional: Set text color */
+}
+
+.msg-handling-button-container button:hover {
+    background-color: #f0f0f0; /* Optional: Add hover effect */
 }
 
 /* 输入容器 */
